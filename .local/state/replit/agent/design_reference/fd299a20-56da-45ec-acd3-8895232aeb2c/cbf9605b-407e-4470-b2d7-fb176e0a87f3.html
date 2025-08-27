@@ -1,0 +1,984 @@
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orquestra - Bravend Education Ecosystem</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                borderRadius: {
+                    lg: "var(--radius)",
+                    md: "calc(var(--radius) - 2px)",
+                    sm: "calc(var(--radius) - 4px)",
+                },
+                colors: {
+                    background: "var(--background)",
+                    foreground: "var(--foreground)",
+                    card: {
+                        DEFAULT: "var(--card)",
+                        foreground: "var(--card-foreground)",
+                    },
+                    popover: {
+                        DEFAULT: "var(--popover)",
+                        foreground: "var(--popover-foreground)",
+                    },
+                    primary: {
+                        DEFAULT: "var(--primary)",
+                        foreground: "var(--primary-foreground)",
+                    },
+                    secondary: {
+                        DEFAULT: "var(--secondary)",
+                        foreground: "var(--secondary-foreground)",
+                    },
+                    muted: {
+                        DEFAULT: "var(--muted)",
+                        foreground: "var(--muted-foreground)",
+                    },
+                    accent: {
+                        DEFAULT: "var(--accent)",
+                        foreground: "var(--accent-foreground)",
+                    },
+                    destructive: {
+                        DEFAULT: "var(--destructive)",
+                        foreground: "var(--destructive-foreground)",
+                    },
+                    border: "var(--border)",
+                    input: "var(--input)",
+                    ring: "var(--ring)",
+                    chart: {
+                        "1": "var(--chart-1)",
+                        "2": "var(--chart-2)",
+                        "3": "var(--chart-3)",
+                        "4": "var(--chart-4)",
+                        "5": "var(--chart-5)",
+                    }
+                },
+                fontFamily: {
+                    sans: ["Inter", "var(--font-sans)"],
+                }
+            },
+        }
+    };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --background: hsl(210 40% 98%);
+            --foreground: hsl(222.2 84% 4.9%);
+            --card: hsl(0 0% 100%);
+            --card-foreground: hsl(222.2 84% 4.9%);
+            --popover: hsl(0 0% 100%);
+            --popover-foreground: hsl(222.2 84% 4.9%);
+            --primary: hsl(221.2 83.2% 53.3%);
+            --primary-foreground: hsl(210 40% 98%);
+            --secondary: hsl(160 81% 40%);
+            --secondary-foreground: hsl(0 0% 100%);
+            --muted: hsl(210 40% 96%);
+            --muted-foreground: hsl(215.4 16.3% 46.9%);
+            --accent: hsl(43 96% 56%);
+            --accent-foreground: hsl(222.2 84% 4.9%);
+            --destructive: hsl(0 84.2% 60.2%);
+            --destructive-foreground: hsl(210 40% 98%);
+            --border: hsl(214.3 31.8% 91.4%);
+            --input: hsl(214.3 31.8% 91.4%);
+            --ring: hsl(221.2 83.2% 53.3%);
+            --radius: 0.5rem;
+            --chart-1: hsl(12 76% 61%);
+            --chart-2: hsl(173 58% 39%);
+            --chart-3: hsl(197 37% 24%);
+            --chart-4: hsl(43 74% 66%);
+            --chart-5: hsl(27 87% 67%);
+        }
+
+        .cvo-theme {
+            --primary: hsl(147 51% 47%);
+            --secondary: hsl(197 71% 52%);
+            --accent: hsl(45 93% 58%);
+        }
+
+        .carvion-theme {
+            --primary: hsl(262 83% 58%);
+            --secondary: hsl(348 83% 58%);
+            --accent: hsl(31 81% 56%);
+        }
+
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .progress-ring {
+            transform: rotate(-90deg);
+        }
+
+        .progress-circle {
+            stroke-dasharray: 251.2;
+            stroke-dashoffset: 251.2;
+            transition: stroke-dashoffset 0.5s ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-background text-foreground font-sans">
+
+    <!-- @COMPONENT: TenantSelector -->
+    <div id="tenant-selector" class="fixed top-4 right-4 z-50">
+        <select id="tenant-switch" class="bg-card border border-border rounded-lg px-3 py-2 text-sm shadow-sm">
+            <option value="cvo">CVO Company</option>
+            <option value="carvion">Carvion Internal</option>
+        </select>
+    </div>
+    <!-- @END_COMPONENT: TenantSelector -->
+
+    <!-- @COMPONENT: Navigation -->
+    <nav class="bg-card border-b border-border shadow-sm sticky top-0 z-40" id="main-nav">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex">
+                    <div class="flex-shrink-0 flex items-center">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center mr-3">
+                                <i class="fas fa-sitemap text-primary-foreground text-lg"></i>
+                            </div>
+                            <span class="text-xl font-bold text-foreground" data-bind="tenant.brandName">Orquestra</span>
+                        </div>
+                    </div>
+                    <div class="hidden sm:ml-6 sm:flex sm:space-x-8">
+                        <a href="#" class="nav-link border-primary text-foreground inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-tachometer-alt mr-2"></i> Dashboard
+                        </a>
+                        <a href="#" class="nav-link border-transparent text-muted-foreground hover:text-foreground hover:border-border inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-graduation-cap mr-2"></i> Trilhas
+                        </a>
+                        <a href="#" class="nav-link border-transparent text-muted-foreground hover:text-foreground hover:border-border inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-users mr-2"></i> Comunidades
+                        </a>
+                        <a href="#" class="nav-link border-transparent text-muted-foreground hover:text-foreground hover:border-border inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium">
+                            <i class="fas fa-chart-line mr-2"></i> Relatórios
+                        </a>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="p-2 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground">
+                        <i class="fas fa-bell"></i>
+                        <span class="absolute -mt-2 ml-2 bg-accent text-accent-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">3</span>
+                    </button>
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-secondary rounded-full flex items-center justify-center">
+                            <span class="text-secondary-foreground text-sm font-medium" data-bind="user.initials">CJ</span>
+                        </div>
+                        <span class="text-sm font-medium" data-bind="user.name">Carlos José</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+    <!-- @END_COMPONENT: Navigation -->
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        
+        <!-- @COMPONENT: DashboardHeader -->
+        <div class="mb-8">
+            <div class="bg-gradient-to-r from-primary to-secondary rounded-xl p-8 text-white">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h1 class="text-3xl font-bold mb-2" data-bind="user.greeting">Bem-vindo, Carlos!</h1>
+                        <p class="text-lg opacity-90" data-bind="tenant.welcomeMessage">Continue sua jornada de aprendizado na CVO Company</p>
+                        <div class="flex items-center mt-4 space-x-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-trophy text-accent mr-2"></i>
+                                <span data-bind="user.totalPoints">2,340 pontos</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-medal text-accent mr-2"></i>
+                                <span data-bind="user.totalBadges">12 badges</span>
+                            </div>
+                            <div class="flex items-center">
+                                <i class="fas fa-chart-line text-accent mr-2"></i>
+                                <span data-bind="user.level">Nível Avançado</span>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Professional business person working on laptop in modern office -->
+                    <img src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?ixlib=rb-4.0.3&auto=format&fit=crop&w=300&h=300" alt="Professional avatar" class="hidden lg:block w-32 h-32 rounded-full border-4 border-white/20 object-cover" data-mock="true" />
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: DashboardHeader -->
+
+        <!-- @COMPONENT: StatsOverview -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+            <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                <div class="flex items-center">
+                    <div class="p-2 bg-primary/10 rounded-lg">
+                        <i class="fas fa-play-circle text-primary text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-muted-foreground">Trilhas em Progresso</p>
+                        <p class="text-2xl font-bold" data-bind="stats.activeTrails">4</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                <div class="flex items-center">
+                    <div class="p-2 bg-secondary/10 rounded-lg">
+                        <i class="fas fa-check-circle text-secondary text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-muted-foreground">Módulos Concluídos</p>
+                        <p class="text-2xl font-bold" data-bind="stats.completedModules">23</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                <div class="flex items-center">
+                    <div class="p-2 bg-accent/10 rounded-lg">
+                        <i class="fas fa-clock text-accent text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-muted-foreground">Horas de Estudo</p>
+                        <p class="text-2xl font-bold" data-bind="stats.studyHours">87h</p>
+                    </div>
+                </div>
+            </div>
+            <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                <div class="flex items-center">
+                    <div class="p-2 bg-chart-1/10 rounded-lg">
+                        <i class="fas fa-users text-chart-1 text-xl"></i>
+                    </div>
+                    <div class="ml-4">
+                        <p class="text-sm text-muted-foreground">Ranking da Empresa</p>
+                        <p class="text-2xl font-bold" data-bind="stats.companyRanking">#3</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: StatsOverview -->
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Left Column -->
+            <div class="lg:col-span-2 space-y-8">
+                
+                <!-- @COMPONENT: ActiveTrails -->
+                <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold">Suas Trilhas Ativas</h2>
+                        <button class="text-primary hover:text-primary/80 text-sm font-medium">Ver todas</button>
+                    </div>
+                    
+                    <!-- @MAP: activeTrails.map(trail => ( -->
+                    <div class="space-y-4" data-mock="true">
+                        <div class="flex items-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                            <!-- Modern digital marketing workspace with charts and analytics -->
+                            <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80" alt="Digital Marketing course" class="w-16 h-16 rounded-lg object-cover mr-4" />
+                            <div class="flex-1">
+                                <h3 class="font-medium mb-1" data-bind="trail.title">Marketing Digital Estratégico</h3>
+                                <p class="text-sm text-muted-foreground mb-2" data-bind="trail.description">Módulo 3 de 8 - SEO e Analytics</p>
+                                <div class="flex items-center">
+                                    <div class="flex-1 bg-muted rounded-full h-2 mr-3">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 37%" data-bind="trail.progress"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground" data-bind="trail.progressText">37%</span>
+                                </div>
+                            </div>
+                            <div class="ml-4 text-right">
+                                <div class="flex items-center text-accent mb-1">
+                                    <i class="fas fa-star text-xs mr-1"></i>
+                                    <span class="text-sm font-medium" data-bind="trail.points">+120 pts</span>
+                                </div>
+                                <button class="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">
+                                    Continuar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                            <!-- Business leadership meeting in modern conference room -->
+                            <img src="https://images.unsplash.com/photo-1552664730-d307ca884978?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80" alt="Leadership course" class="w-16 h-16 rounded-lg object-cover mr-4" />
+                            <div class="flex-1">
+                                <h3 class="font-medium mb-1" data-bind="trail.title">Liderança e Gestão de Equipes</h3>
+                                <p class="text-sm text-muted-foreground mb-2" data-bind="trail.description">Módulo 2 de 6 - Comunicação Eficaz</p>
+                                <div class="flex items-center">
+                                    <div class="flex-1 bg-muted rounded-full h-2 mr-3">
+                                        <div class="bg-secondary h-2 rounded-full" style="width: 66%" data-bind="trail.progress"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground" data-bind="trail.progressText">66%</span>
+                                </div>
+                            </div>
+                            <div class="ml-4 text-right">
+                                <div class="flex items-center text-accent mb-1">
+                                    <i class="fas fa-star text-xs mr-1"></i>
+                                    <span class="text-sm font-medium" data-bind="trail.points">+80 pts</span>
+                                </div>
+                                <button class="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">
+                                    Continuar
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center p-4 border border-border rounded-lg hover:bg-muted/50 transition-colors">
+                            <!-- Data analytics dashboard on multiple screens showing business metrics -->
+                            <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=80&h=80" alt="Data Analytics course" class="w-16 h-16 rounded-lg object-cover mr-4" />
+                            <div class="flex-1">
+                                <h3 class="font-medium mb-1" data-bind="trail.title">Análise de Dados para Negócios</h3>
+                                <p class="text-sm text-muted-foreground mb-2" data-bind="trail.description">Módulo 1 de 5 - Fundamentos de Analytics</p>
+                                <div class="flex items-center">
+                                    <div class="flex-1 bg-muted rounded-full h-2 mr-3">
+                                        <div class="bg-chart-2 h-2 rounded-full" style="width: 20%" data-bind="trail.progress"></div>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground" data-bind="trail.progressText">20%</span>
+                                </div>
+                            </div>
+                            <div class="ml-4 text-right">
+                                <div class="flex items-center text-accent mb-1">
+                                    <i class="fas fa-star text-xs mr-1"></i>
+                                    <span class="text-sm font-medium" data-bind="trail.points">+200 pts</span>
+                                </div>
+                                <button class="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">
+                                    Iniciar
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- @END_MAP -->
+                </div>
+                <!-- @END_COMPONENT: ActiveTrails -->
+
+                <!-- @COMPONENT: RecentAchievements -->
+                <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold">Conquistas Recentes</h2>
+                        <button class="text-primary hover:text-primary/80 text-sm font-medium">Ver todas</button>
+                    </div>
+                    
+                    <div class="space-y-4" data-mock="true">
+                        <div class="flex items-center p-4 bg-accent/5 border border-accent/20 rounded-lg">
+                            <div class="w-12 h-12 bg-accent/20 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-trophy text-accent text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium mb-1" data-bind="achievement.title">Expert em Marketing</h3>
+                                <p class="text-sm text-muted-foreground" data-bind="achievement.description">Completou 5 trilhas de marketing digital</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-accent font-bold" data-bind="achievement.points">+500 pts</div>
+                                <div class="text-xs text-muted-foreground" data-bind="achievement.date">Hoje</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center p-4 bg-secondary/5 border border-secondary/20 rounded-lg">
+                            <div class="w-12 h-12 bg-secondary/20 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-medal text-secondary text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium mb-1" data-bind="achievement.title">Participação Ativa</h3>
+                                <p class="text-sm text-muted-foreground" data-bind="achievement.description">7 dias consecutivos de atividade</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-secondary font-bold" data-bind="achievement.points">+100 pts</div>
+                                <div class="text-xs text-muted-foreground" data-bind="achievement.date">Ontem</div>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center p-4 bg-primary/5 border border-primary/20 rounded-lg">
+                            <div class="w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center mr-4">
+                                <i class="fas fa-star text-primary text-xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h3 class="font-medium mb-1" data-bind="achievement.title">Primeiro Módulo</h3>
+                                <p class="text-sm text-muted-foreground" data-bind="achievement.description">Completou seu primeiro módulo de aprendizado</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-primary font-bold" data-bind="achievement.points">+50 pts</div>
+                                <div class="text-xs text-muted-foreground" data-bind="achievement.date">3 dias atrás</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: RecentAchievements -->
+
+            </div>
+
+            <!-- Right Column -->
+            <div class="space-y-8">
+                
+                <!-- @COMPONENT: LearningProgress -->
+                <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <h2 class="text-xl font-semibold mb-6">Progresso de Aprendizado</h2>
+                    
+                    <div class="space-y-6" data-mock="true">
+                        <!-- Progress Ring SVG -->
+                        <div class="flex flex-col items-center">
+                            <div class="relative w-32 h-32">
+                                <svg class="w-32 h-32 progress-ring" viewBox="0 0 84 84">
+                                    <circle cx="42" cy="42" r="40" stroke="currentColor" stroke-width="4" fill="none" class="text-muted/30" />
+                                    <circle cx="42" cy="42" r="40" stroke="currentColor" stroke-width="4" fill="none" class="text-primary progress-circle" style="stroke-dashoffset: 75.36;" />
+                                </svg>
+                                <div class="absolute inset-0 flex items-center justify-center">
+                                    <span class="text-2xl font-bold" data-bind="progress.percentage">70%</span>
+                                </div>
+                            </div>
+                            <p class="text-sm text-muted-foreground mt-2" data-bind="progress.description">Meta mensal concluída</p>
+                        </div>
+                        
+                        <!-- Weekly Activity -->
+                        <div>
+                            <h3 class="font-medium mb-3">Atividade da Semana</h3>
+                            <div class="flex justify-between items-end space-x-1" data-mock="true">
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary/20 rounded-t" style="height: 20px"></div>
+                                    <span class="text-xs text-muted-foreground mt-1">S</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 40px"></div>
+                                    <span class="text-xs text-muted-foreground mt-1">T</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 32px"></div>
+                                    <span class="text-xs text-muted-foreground mt-1">Q</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary/60 rounded-t" style="height: 28px"></div>
+                                    <span class="text-xs text-muted-foreground mt-1">Q</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-primary rounded-t" style="height: 45px"></div>
+                                    <span class="text-xs text-muted-foreground mt-1">S</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-secondary rounded-t" style="height: 38px"></div>
+                                    <span class="text-xs text-muted-foreground mt-1">S</span>
+                                </div>
+                                <div class="flex flex-col items-center">
+                                    <div class="w-8 bg-muted rounded-t" style="height: 10px"></div>
+                                    <span class="text-xs text-muted-foreground mt-1">D</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: LearningProgress -->
+
+                <!-- @COMPONENT: LeaderboardRanking -->
+                <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold">Ranking da Empresa</h2>
+                        <button class="text-primary hover:text-primary/80 text-sm font-medium">Ver ranking completo</button>
+                    </div>
+                    
+                    <div class="space-y-4" data-mock="true">
+                        <div class="flex items-center justify-between p-3 bg-accent/5 border border-accent/20 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-accent text-accent-foreground rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                                    1
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="user.name">Maria Silva</p>
+                                    <p class="text-sm text-muted-foreground" data-bind="user.department">Marketing</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-accent" data-bind="user.points">3,240</p>
+                                <p class="text-xs text-muted-foreground">pontos</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-muted-foreground text-background rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                                    2
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="user.name">João Santos</p>
+                                    <p class="text-sm text-muted-foreground" data-bind="user.department">Vendas</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold" data-bind="user.points">2,890</p>
+                                <p class="text-xs text-muted-foreground">pontos</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                                    3
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="user.name">Carlos José</p>
+                                    <p class="text-sm text-muted-foreground" data-bind="user.department">Gestão</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold text-primary" data-bind="user.points">2,340</p>
+                                <p class="text-xs text-muted-foreground">pontos</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between p-3 rounded-lg">
+                            <div class="flex items-center">
+                                <div class="w-8 h-8 bg-muted text-muted-foreground rounded-full flex items-center justify-center text-sm font-bold mr-3">
+                                    4
+                                </div>
+                                <div>
+                                    <p class="font-medium" data-bind="user.name">Ana Costa</p>
+                                    <p class="text-sm text-muted-foreground" data-bind="user.department">RH</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <p class="font-bold" data-bind="user.points">2,120</p>
+                                <p class="text-xs text-muted-foreground">pontos</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: LeaderboardRanking -->
+
+                <!-- @COMPONENT: UpcomingEvents -->
+                <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                    <div class="flex items-center justify-between mb-6">
+                        <h2 class="text-xl font-semibold">Próximos Eventos</h2>
+                        <button class="text-primary hover:text-primary/80 text-sm font-medium">Ver agenda</button>
+                    </div>
+                    
+                    <div class="space-y-4" data-mock="true">
+                        <div class="border-l-4 border-primary pl-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-medium" data-bind="event.title">Webinar: Tendências 2024</h3>
+                                <span class="text-xs text-muted-foreground bg-muted px-2 py-1 rounded" data-bind="event.time">14:00</span>
+                            </div>
+                            <p class="text-sm text-muted-foreground" data-bind="event.date">Hoje, 15 de Janeiro</p>
+                            <p class="text-sm text-primary mt-1" data-bind="event.instructor">com Dr. Ricardo Lopes</p>
+                        </div>
+
+                        <div class="border-l-4 border-secondary pl-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-medium" data-bind="event.title">Workshop: Liderança 4.0</h3>
+                                <span class="text-xs text-muted-foreground bg-muted px-2 py-1 rounded" data-bind="event.time">16:00</span>
+                            </div>
+                            <p class="text-sm text-muted-foreground" data-bind="event.date">Amanhã, 16 de Janeiro</p>
+                            <p class="text-sm text-secondary mt-1" data-bind="event.instructor">com Prof. Maria Fernanda</p>
+                        </div>
+
+                        <div class="border-l-4 border-accent pl-4">
+                            <div class="flex justify-between items-start mb-1">
+                                <h3 class="font-medium" data-bind="event.title">Business Game: Estratégia</h3>
+                                <span class="text-xs text-muted-foreground bg-muted px-2 py-1 rounded" data-bind="event.time">10:00</span>
+                            </div>
+                            <p class="text-sm text-muted-foreground" data-bind="event.date">Quinta, 17 de Janeiro</p>
+                            <p class="text-sm text-accent mt-1" data-bind="event.instructor">Simulação em equipe</p>
+                        </div>
+                    </div>
+                </div>
+                <!-- @END_COMPONENT: UpcomingEvents -->
+
+            </div>
+        </div>
+
+        <!-- @COMPONENT: AdminDashboard (Hidden by default, shown for admin users) -->
+        <div id="admin-section" class="mt-12 space-y-8" style="display: none;" data-role="admin,super-admin">
+            
+            <div class="border-t border-border pt-8">
+                <h2 class="text-2xl font-bold mb-6 flex items-center">
+                    <i class="fas fa-cog mr-3 text-primary"></i>
+                    Painel Administrativo
+                </h2>
+
+                <!-- Admin Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-chart-1/10 rounded-lg">
+                                <i class="fas fa-users text-chart-1 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-muted-foreground">Usuários Ativos</p>
+                                <p class="text-2xl font-bold" data-bind="admin.activeUsers">1,247</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-chart-2/10 rounded-lg">
+                                <i class="fas fa-graduation-cap text-chart-2 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-muted-foreground">Trilhas Disponíveis</p>
+                                <p class="text-2xl font-bold" data-bind="admin.totalTrails">89</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-chart-3/10 rounded-lg">
+                                <i class="fas fa-chart-line text-chart-3 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-muted-foreground">Engajamento</p>
+                                <p class="text-2xl font-bold" data-bind="admin.engagement">76%</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bg-card p-6 rounded-xl shadow-sm border border-border">
+                        <div class="flex items-center">
+                            <div class="p-2 bg-chart-4/10 rounded-lg">
+                                <i class="fas fa-trophy text-chart-4 text-xl"></i>
+                            </div>
+                            <div class="ml-4">
+                                <p class="text-sm text-muted-foreground">NPS Score</p>
+                                <p class="text-2xl font-bold" data-bind="admin.nps">84</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    
+                    <!-- Content Management -->
+                    <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold">Gestão de Conteúdo</h3>
+                            <button class="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">
+                                <i class="fas fa-plus mr-2"></i>Nova Trilha
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4" data-mock="true">
+                            <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center mr-4">
+                                        <i class="fas fa-play text-primary"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium" data-bind="content.title">Marketing Digital 2024</h4>
+                                        <p class="text-sm text-muted-foreground" data-bind="content.status">12 módulos • 340 alunos</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs" data-bind="content.status">Ativo</span>
+                                    <button class="text-muted-foreground hover:text-foreground">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 bg-accent/10 rounded-lg flex items-center justify-center mr-4">
+                                        <i class="fas fa-users text-accent"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium" data-bind="content.title">Liderança Estratégica</h4>
+                                        <p class="text-sm text-muted-foreground" data-bind="content.status">8 módulos • 187 alunos</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-muted text-muted-foreground px-2 py-1 rounded-full text-xs" data-bind="content.status">Rascunho</span>
+                                    <button class="text-muted-foreground hover:text-foreground">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-12 h-12 bg-chart-2/10 rounded-lg flex items-center justify-center mr-4">
+                                        <i class="fas fa-chart-bar text-chart-2"></i>
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium" data-bind="content.title">Analytics para Negócios</h4>
+                                        <p class="text-sm text-muted-foreground" data-bind="content.status">15 módulos • 892 alunos</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-secondary/10 text-secondary px-2 py-1 rounded-full text-xs" data-bind="content.status">Ativo</span>
+                                    <button class="text-muted-foreground hover:text-foreground">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- User Management -->
+                    <div class="bg-card rounded-xl shadow-sm border border-border p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <h3 class="text-lg font-semibold">Gestão de Usuários</h3>
+                            <button class="bg-secondary text-secondary-foreground px-4 py-2 rounded-lg text-sm hover:bg-secondary/90 transition-colors">
+                                <i class="fas fa-user-plus mr-2"></i>Novo Usuário
+                            </button>
+                        </div>
+                        
+                        <div class="space-y-4" data-mock="true">
+                            <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-primary rounded-full flex items-center justify-center text-primary-foreground font-medium mr-3">
+                                        MS
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium" data-bind="user.name">Maria Silva</h4>
+                                        <p class="text-sm text-muted-foreground" data-bind="user.email">maria.silva@cvocompany.com</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-accent/10 text-accent px-2 py-1 rounded-full text-xs" data-bind="user.role">Admin</span>
+                                    <button class="text-muted-foreground hover:text-foreground">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-secondary rounded-full flex items-center justify-center text-secondary-foreground font-medium mr-3">
+                                        JS
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium" data-bind="user.name">João Santos</h4>
+                                        <p class="text-sm text-muted-foreground" data-bind="user.email">joao.santos@cvocompany.com</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-primary/10 text-primary px-2 py-1 rounded-full text-xs" data-bind="user.role">Educador</span>
+                                    <button class="text-muted-foreground hover:text-foreground">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center justify-between p-4 border border-border rounded-lg">
+                                <div class="flex items-center">
+                                    <div class="w-10 h-10 bg-chart-2 rounded-full flex items-center justify-center text-white font-medium mr-3">
+                                        CJ
+                                    </div>
+                                    <div>
+                                        <h4 class="font-medium" data-bind="user.name">Carlos José</h4>
+                                        <p class="text-sm text-muted-foreground" data-bind="user.email">carlos@cvocompany.com</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <span class="bg-chart-1/10 text-chart-1 px-2 py-1 rounded-full text-xs" data-bind="user.role">Aluno</span>
+                                    <button class="text-muted-foreground hover:text-foreground">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+        <!-- @END_COMPONENT: AdminDashboard -->
+
+    </main>
+
+    <!-- @COMPONENT: WhiteLabelCustomization (Modal) -->
+    <div id="customization-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-card rounded-xl shadow-xl border border-border p-8 w-full max-w-2xl mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-semibold">Personalização White-Label</h2>
+                <button onclick="closeCustomization()" class="text-muted-foreground hover:text-foreground">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Nome da Marca</label>
+                    <input type="text" placeholder="Nome da sua empresa" class="w-full p-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-ring" data-bind="customization.brandName" />
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Cor Primária</label>
+                        <input type="color" value="#2563eb" class="w-full h-12 border border-border rounded-lg cursor-pointer" data-bind="customization.primaryColor" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Cor Secundária</label>
+                        <input type="color" value="#10b981" class="w-full h-12 border border-border rounded-lg cursor-pointer" data-bind="customization.secondaryColor" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Cor de Destaque</label>
+                        <input type="color" value="#f59e0b" class="w-full h-12 border border-border rounded-lg cursor-pointer" data-bind="customization.accentColor" />
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium mb-2">Logo da Empresa</label>
+                    <div class="border-2 border-dashed border-border rounded-lg p-8 text-center">
+                        <i class="fas fa-cloud-upload-alt text-4xl text-muted-foreground mb-4"></i>
+                        <p class="text-muted-foreground">Arraste e solte seu logo aqui ou clique para selecionar</p>
+                        <button class="mt-4 bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm hover:bg-primary/90 transition-colors">
+                            Selecionar Arquivo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end space-x-4 pt-6 border-t border-border">
+                    <button onclick="closeCustomization()" class="px-4 py-2 text-muted-foreground hover:text-foreground transition-colors">
+                        Cancelar
+                    </button>
+                    <button class="bg-primary text-primary-foreground px-6 py-2 rounded-lg hover:bg-primary/90 transition-colors">
+                        Salvar Personalização
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- @END_COMPONENT: WhiteLabelCustomization -->
+
+    <script>
+        // TODO: Implement proper state management and API integration
+        
+        (function() {
+            // Mock data for different tenants
+            const tenantData = {
+                cvo: {
+                    brandName: "CVO Company Platform",
+                    theme: "cvo-theme",
+                    welcomeMessage: "Continue sua jornada de aprendizado na CVO Company",
+                    primaryColor: "#059669",
+                    secondaryColor: "#0ea5e9",
+                    accentColor: "#eab308"
+                },
+                carvion: {
+                    brandName: "Carvion Learning Hub",
+                    theme: "carvion-theme",
+                    welcomeMessage: "Bem-vindo ao hub de aprendizado da Carvion Tech",
+                    primaryColor: "#7c3aed",
+                    secondaryColor: "#e11d48",
+                    accentColor: "#ea580c"
+                }
+            };
+
+            // Tenant switching functionality
+            const tenantSelector = document.getElementById('tenant-switch');
+            const body = document.body;
+            
+            function switchTenant(tenantId) {
+                const tenant = tenantData[tenantId];
+                if (tenant) {
+                    // Remove existing theme classes
+                    body.className = body.className.replace(/\w+-theme/g, '').trim();
+                    // Add new theme class
+                    body.classList.add(tenant.theme, 'bg-background', 'text-foreground', 'font-sans');
+                    
+                    // Update brand name
+                    const brandElements = document.querySelectorAll('[data-bind="tenant.brandName"]');
+                    brandElements.forEach(el => el.textContent = tenant.brandName);
+                    
+                    // Update welcome message
+                    const welcomeElements = document.querySelectorAll('[data-bind="tenant.welcomeMessage"]');
+                    welcomeElements.forEach(el => el.textContent = tenant.welcomeMessage);
+                    
+                    // Update CSS custom properties for colors
+                    document.documentElement.style.setProperty('--primary', `hsl(${tenant.primaryColor})`);
+                    document.documentElement.style.setProperty('--secondary', `hsl(${tenant.secondaryColor})`);
+                    document.documentElement.style.setProperty('--accent', `hsl(${tenant.accentColor})`);
+                }
+            }
+
+            tenantSelector.addEventListener('change', (e) => {
+                switchTenant(e.target.value);
+            });
+
+            // Initialize with default tenant
+            switchTenant('cvo');
+
+            // Mock user role management
+            const userRole = 'admin'; // This would come from authentication
+            const adminSection = document.getElementById('admin-section');
+            
+            if (userRole === 'admin' || userRole === 'super-admin') {
+                adminSection.style.display = 'block';
+            }
+
+            // Customization modal functions
+            window.openCustomization = function() {
+                document.getElementById('customization-modal').style.display = 'flex';
+            };
+
+            window.closeCustomization = function() {
+                document.getElementById('customization-modal').style.display = 'none';
+            };
+
+            // Mock notifications
+            const notifications = [
+                {
+                    id: 1,
+                    title: "Novo módulo disponível",
+                    message: "O módulo 'IA aplicada aos negócios' foi adicionado à sua trilha.",
+                    time: "2 min atrás",
+                    type: "info"
+                },
+                {
+                    id: 2,
+                    title: "Conquista desbloqueada",
+                    message: "Parabéns! Você conquistou o badge 'Expert em Marketing'.",
+                    time: "1 hora atrás",
+                    type: "success"
+                },
+                {
+                    id: 3,
+                    title: "Lembrete de evento",
+                    message: "O webinar 'Tendências 2024' começará em 30 minutos.",
+                    time: "30 min atrás",
+                    type: "warning"
+                }
+            ];
+
+            // Add click handlers for interactive elements
+            document.addEventListener('click', (e) => {
+                if (e.target.matches('.nav-link')) {
+                    e.preventDefault();
+                    // TODO: Implement navigation logic
+                    console.log('Navigation clicked:', e.target.textContent);
+                }
+                
+                if (e.target.matches('button')) {
+                    const buttonText = e.target.textContent.trim();
+                    if (buttonText.includes('Continuar') || buttonText.includes('Iniciar')) {
+                        e.preventDefault();
+                        // TODO: Implement course navigation
+                        console.log('Course action:', buttonText);
+                    }
+                }
+            });
+
+            // Simulate real-time updates
+            setInterval(() => {
+                const progressBars = document.querySelectorAll('[style*="width:"]');
+                progressBars.forEach(bar => {
+                    const currentWidth = parseInt(bar.style.width);
+                    if (currentWidth < 100 && Math.random() > 0.8) {
+                        const newWidth = Math.min(currentWidth + 1, 100);
+                        bar.style.width = newWidth + '%';
+                    }
+                });
+            }, 5000);
+
+            // Initialize progress ring animation
+            const progressCircle = document.querySelector('.progress-circle');
+            if (progressCircle) {
+                const percentage = 70;
+                const offset = 251.2 - (percentage / 100) * 251.2;
+                progressCircle.style.strokeDashoffset = offset;
+            }
+
+            console.log('Orquestra Platform initialized successfully');
+        })();
+    </script>
+</body>
+</html>

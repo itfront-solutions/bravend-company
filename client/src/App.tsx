@@ -9,28 +9,51 @@ import { useTenantStore } from "@/store/tenant";
 
 // Pages
 import Login from "@/pages/Login";
-import Dashboard from "@/pages/Dashboard";
+import NewDashboard from "@/pages/NewDashboard";
+import ClientDashboard from "@/pages/ClientDashboard";
 import Trails from "@/pages/Trails";
 import Communities from "@/pages/Communities";
 import Reports from "@/pages/Reports";
 import AdminPanel from "@/pages/AdminPanel";
 import NotFound from "@/pages/not-found";
 
+// BusinessQuest Pages
+import BusinessQuestLanding from "@/pages/businessquest/Landing";
+import BusinessQuestHome from "@/pages/businessquest/Home";
+import BusinessQuestDecisionPhase2 from "@/pages/businessquest/DecisionPhase2";
+
+// ConselhoDigital Pages
+import ConselhoDigitalLanding from "@/pages/conselho-digital/Landing";
+import ConselhoDigitalDashboard from "@/pages/conselho-digital/Dashboard";
+import ConselhoDigitalAICoach from "@/pages/conselho-digital/AICoach";
+import ConselhoDigitalPortfolio from "@/pages/conselho-digital/Portfolio";
+
 // Components
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
+import LeftSidebarLayout from "@/components/layout/LeftSidebarLayout";
+import { useDomainDetection } from "@/lib/domain-detection";
+import { useLayoutStore } from "@/store/layout";
 
 function Router() {
   const { isAuthenticated } = useAuthStore();
+  const { layoutType } = useLayoutStore();
+  const { isMainDomain, tenantId } = useDomainDetection();
+
+  // Choose layout component based on configuration
+  const LayoutComponent = layoutType === 'left-sidebar' ? LeftSidebarLayout : Layout;
+
+  // Use ClientDashboard for tenant-specific domains, NewDashboard for main domain
+  const DashboardComponent = !isMainDomain && tenantId ? ClientDashboard : NewDashboard;
 
   return (
     <Switch>
       <Route path="/login" component={Login} />
       
       {isAuthenticated ? (
-        <Layout>
+        <LayoutComponent>
           <Switch>
-            <Route path="/" component={Dashboard} />
+            <Route path="/" component={DashboardComponent} />
             <Route path="/trails" component={Trails} />
             <Route path="/communities" component={Communities} />
             <Route path="/reports">
@@ -43,9 +66,16 @@ function Router() {
                 <AdminPanel />
               </ProtectedRoute>
             </Route>
+            <Route path="/businessquest" component={BusinessQuestLanding} />
+            <Route path="/businessquest/home" component={BusinessQuestHome} />
+            <Route path="/businessquest/phase2" component={BusinessQuestDecisionPhase2} />
+            <Route path="/conselho-digital" component={ConselhoDigitalLanding} />
+            <Route path="/conselho-digital/dashboard" component={ConselhoDigitalDashboard} />
+            <Route path="/conselho-digital/coach" component={ConselhoDigitalAICoach} />
+            <Route path="/conselho-digital/portfolio" component={ConselhoDigitalPortfolio} />
             <Route component={NotFound} />
           </Switch>
-        </Layout>
+        </LayoutComponent>
       ) : (
         <Route component={Login} />
       )}

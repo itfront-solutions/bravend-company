@@ -2,9 +2,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Users, MessageCircle, Plus, Bookmark } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useTenantStore } from '@/store/tenant';
+import { useWhiteLabelTheme } from '@/lib/theme';
+import { Users, MessageCircle, Plus, Bookmark, Search, Filter, TrendingUp, Heart } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function Communities() {
+  const { currentTenant } = useTenantStore();
+  const { theme, applyTheme } = useWhiteLabelTheme();
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('all');
+
+  useEffect(() => {
+    applyTheme();
+  }, [applyTheme]);
+
   // Mock data for communities
   const communities = [
     {
@@ -75,157 +89,256 @@ export default function Communities() {
     },
   ];
 
+  const filteredCommunities = communities.filter((community) => {
+    const matchesSearch = community.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         community.description.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === 'all' || community.category.toLowerCase() === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = ['all', ...new Set(communities.map(c => c.category.toLowerCase()))];
+
   return (
-    <div className="space-y-6" data-testid="communities-page">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Comunidades</h1>
-          <p className="text-muted-foreground">
-            Conecte-se com outros profissionais e compartilhe conhecimento
+    <div className="min-h-screen theme-background">
+      <div className="container-responsive py-6 md:py-8" data-testid="communities-page">
+        {/* Hero Section */}
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
+            Comunidades
+          </h1>
+          <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
+            Conecte-se com outros profissionais, compartilhe conhecimento e aprenda colaborativamente
           </p>
         </div>
-        <Button data-testid="create-community-button">
-          <Plus className="h-4 w-4 mr-2" />
-          Nova Comunidade
-        </Button>
-      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Suas Comunidades</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {communities.filter(c => c.isJoined).map((community) => (
-                <Card key={community.id} className="hover:shadow-lg transition-shadow" data-testid={`community-card-${community.id}`}>
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center space-x-3">
-                      <Avatar className="h-12 w-12">
-                        <AvatarImage src={community.avatar} alt={community.name} />
-                        <AvatarFallback>{community.name[0]}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <CardTitle className="text-lg">{community.name}</CardTitle>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge variant="secondary">{community.category}</Badge>
-                          <span className="text-xs text-muted-foreground">{community.lastActivity}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <CardDescription className="mb-3">{community.description}</CardDescription>
-                    <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1" />
-                        {community.members} membros
-                      </div>
-                      <div className="flex items-center">
-                        <MessageCircle className="h-4 w-4 mr-1" />
-                        {community.posts} posts
-                      </div>
-                    </div>
-                    <Button className="w-full" variant="outline" data-testid={`visit-community-${community.id}`}>
-                      Visitar Comunidade
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
+        {/* Search and Filters */}
+        <Card className="mb-6 md:mb-8">
+          <CardContent className="p-4 md:p-6">
+            <div className="flex flex-col lg:flex-row gap-4">
+              <div className="flex-1">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                  <Input
+                    placeholder="Buscar comunidades..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+              
+              <div className="flex flex-col sm:flex-row gap-3 lg:gap-4">
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-full sm:w-40">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Categoria" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todas</SelectItem>
+                    {categories.filter(cat => cat !== 'all').map(category => (
+                      <SelectItem key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Button data-testid="create-community-button" className="theme-primary">
+                  <Plus className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Nova Comunidade</span>
+                  <span className="sm:hidden">Nova</span>
+                </Button>
+              </div>
             </div>
-          </div>
+          </CardContent>
+        </Card>
 
-          <div>
-            <h2 className="text-xl font-semibold mb-4">Descobrir Comunidades</h2>
-            <div className="space-y-4">
-              {communities.filter(c => !c.isJoined).map((community) => (
-                <Card key={community.id}>
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <Avatar className="h-12 w-12">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 md:gap-8">
+          <div className="xl:col-span-2 space-y-6 md:space-y-8">
+            <div>
+              <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Suas Comunidades</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6">
+                {filteredCommunities.filter(c => c.isJoined).map((community) => (
+                  <Card key={community.id} className="card-responsive hover-lift hover-glow transition-all" data-testid={`community-card-${community.id}`}>
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center space-x-3">
+                        <Avatar className="h-12 w-12 md:h-14 md:w-14">
                           <AvatarImage src={community.avatar} alt={community.name} />
-                          <AvatarFallback>{community.name[0]}</AvatarFallback>
+                          <AvatarFallback className="theme-primary text-white">{community.name[0]}</AvatarFallback>
                         </Avatar>
-                        <div>
-                          <h3 className="font-semibold">{community.name}</h3>
-                          <p className="text-sm text-muted-foreground">{community.description}</p>
-                          <div className="flex items-center space-x-4 mt-1 text-xs text-muted-foreground">
-                            <span>{community.members} membros</span>
-                            <span>{community.posts} posts</span>
-                            <Badge variant="outline" className="text-xs">{community.category}</Badge>
+                        <div className="flex-1 min-w-0">
+                          <CardTitle className="text-base md:text-lg truncate">{community.name}</CardTitle>
+                          <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-2 mt-1 gap-1 sm:gap-0">
+                            <Badge variant="secondary" className="w-fit">{community.category}</Badge>
+                            <span className="text-xs text-muted-foreground">{community.lastActivity}</span>
                           </div>
                         </div>
                       </div>
-                      <Button data-testid={`join-community-${community.id}`}>Entrar</Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <CardDescription className="line-clamp-2">{community.description}</CardDescription>
+                      <div className="flex items-center justify-between text-sm text-muted-foreground">
+                        <div className="flex items-center">
+                          <Users className="h-4 w-4 mr-1" />
+                          {community.members} membros
+                        </div>
+                        <div className="flex items-center">
+                          <MessageCircle className="h-4 w-4 mr-1" />
+                          {community.posts} posts
+                        </div>
+                      </div>
+                      <Button className="w-full theme-primary" variant="outline" data-testid={`visit-community-${community.id}`}>
+                        Visitar Comunidade
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-xl md:text-2xl font-semibold mb-4 md:mb-6">Descobrir Comunidades</h2>
+              <div className="space-y-4 md:space-y-6">
+                {filteredCommunities.filter(c => !c.isJoined).map((community) => (
+                  <Card key={community.id} className="hover-lift transition-all">
+                    <CardContent className="p-4 md:p-6">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+                        <div className="flex items-center space-x-4 flex-1">
+                          <Avatar className="h-12 w-12 md:h-14 md:w-14 flex-shrink-0">
+                            <AvatarImage src={community.avatar} alt={community.name} />
+                            <AvatarFallback className="theme-secondary text-white">{community.name[0]}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-semibold text-base md:text-lg">{community.name}</h3>
+                            <p className="text-sm md:text-base text-muted-foreground line-clamp-2">{community.description}</p>
+                            <div className="flex flex-wrap items-center gap-2 md:gap-4 mt-2 text-xs text-muted-foreground">
+                              <span className="flex items-center">
+                                <Users className="h-3 w-3 mr-1" />
+                                {community.members} membros
+                              </span>
+                              <span className="flex items-center">
+                                <MessageCircle className="h-3 w-3 mr-1" />
+                                {community.posts} posts
+                              </span>
+                              <Badge variant="outline" className="text-xs">{community.category}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <Button 
+                          data-testid={`join-community-${community.id}`}
+                          className="w-full sm:w-auto theme-primary"
+                        >
+                          Entrar
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Posts Recentes</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {recentPosts.map((post) => (
-                <div key={post.id} className="border-b border-border pb-4 last:border-b-0" data-testid={`recent-post-${post.id}`}>
-                  <div className="flex items-start space-x-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={post.authorAvatar} alt={post.author} />
-                      <AvatarFallback>{post.author[0]}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <h4 className="font-medium text-sm line-clamp-2">{post.title}</h4>
-                      <div className="flex items-center space-x-2 mt-1 text-xs text-muted-foreground">
-                        <span>{post.author}</span>
-                        <span>•</span>
-                        <span>{post.community}</span>
-                        <span>•</span>
-                        <span>{post.time}</span>
-                      </div>
-                      <div className="flex items-center space-x-4 mt-2 text-xs text-muted-foreground">
-                        <span>{post.likes} curtidas</span>
-                        <span>{post.replies} respostas</span>
+          <div className="space-y-6 md:space-y-8">
+            {/* Posts Recentes */}
+            <Card className="card-responsive">
+              <CardHeader>
+                <CardTitle className="text-base md:text-lg flex items-center">
+                  <TrendingUp className="h-5 w-5 mr-2 theme-accent-text" />
+                  Posts Recentes
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {recentPosts.map((post) => (
+                  <div key={post.id} className="border-b border-border pb-4 last:border-b-0" data-testid={`recent-post-${post.id}`}>
+                    <div className="flex items-start space-x-3">
+                      <Avatar className="h-8 w-8 flex-shrink-0">
+                        <AvatarImage src={post.authorAvatar} alt={post.author} />
+                        <AvatarFallback className="theme-primary text-white text-xs">{post.author[0]}</AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm line-clamp-2 mb-1">{post.title}</h4>
+                        <div className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground mb-2">
+                          <span className="font-medium">{post.author}</span>
+                          <span>•</span>
+                          <span>{post.community}</span>
+                          <span>•</span>
+                          <span>{post.time}</span>
+                        </div>
+                        <div className="flex items-center space-x-4 text-xs text-muted-foreground">
+                          <span className="flex items-center">
+                            <Heart className="h-3 w-3 mr-1" />
+                            {post.likes}
+                          </span>
+                          <span className="flex items-center">
+                            <MessageCircle className="h-3 w-3 mr-1" />
+                            {post.replies}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+                ))}
+              </CardContent>
+            </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Dicas da Comunidade</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-start space-x-2">
-                <Bookmark className="h-4 w-4 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Seja respeitoso</p>
-                  <p className="text-xs text-muted-foreground">Mantenha um ambiente profissional e colaborativo</p>
+            {/* Community Guidelines */}
+            <Card className="card-responsive">
+              <CardHeader>
+                <CardTitle className="text-base md:text-lg flex items-center">
+                  <Bookmark className="h-5 w-5 mr-2 theme-secondary-text" />
+                  Diretrizes da Comunidade
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-start space-x-3">
+                  <Bookmark className="h-4 w-4 theme-primary-text mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium mb-1">Seja respeitoso</p>
+                    <p className="text-xs text-muted-foreground">Mantenha um ambiente profissional e colaborativo</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start space-x-2">
-                <Bookmark className="h-4 w-4 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Compartilhe conhecimento</p>
-                  <p className="text-xs text-muted-foreground">Ajude outros com sua experiência e aprenda</p>
+                <div className="flex items-start space-x-3">
+                  <Bookmark className="h-4 w-4 theme-primary-text mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium mb-1">Compartilhe conhecimento</p>
+                    <p className="text-xs text-muted-foreground">Ajude outros com sua experiência e aprenda colaborativamente</p>
+                  </div>
                 </div>
-              </div>
-              <div className="flex items-start space-x-2">
-                <Bookmark className="h-4 w-4 text-primary mt-0.5" />
-                <div>
-                  <p className="text-sm font-medium">Use tags relevantes</p>
-                  <p className="text-xs text-muted-foreground">Facilite a descoberta do seu conteúdo</p>
+                <div className="flex items-start space-x-3">
+                  <Bookmark className="h-4 w-4 theme-primary-text mt-0.5 flex-shrink-0" />
+                  <div>
+                    <p className="text-sm font-medium mb-1">Use categorias relevantes</p>
+                    <p className="text-xs text-muted-foreground">Facilite a descoberta e organização do conteúdo</p>
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         </div>
+
+        {/* Empty State */}
+        {filteredCommunities.length === 0 && (
+          <div className="text-center py-12 md:py-16">
+            <Users className="h-12 w-12 md:h-16 md:w-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg md:text-xl font-semibold mb-2 text-gray-900">
+              Nenhuma comunidade encontrada
+            </h3>
+            <p className="text-gray-600 max-w-md mx-auto mb-4">
+              Tente ajustar os filtros ou termo de busca para encontrar comunidades.
+            </p>
+            {(searchTerm || filterCategory !== 'all') && (
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterCategory('all');
+                }}
+              >
+                Limpar Filtros
+              </Button>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

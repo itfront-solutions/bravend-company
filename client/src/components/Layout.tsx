@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
-import Navigation from './Navigation';
+import NewNavigation from './NewNavigation';
 import TenantSelector from './TenantSelector';
 
 interface LayoutProps {
@@ -19,10 +19,10 @@ export default function Layout({ children }: LayoutProps) {
   }, [user?.tenantId, initializeTenant]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gray-50">
       <TenantSelector />
-      <Navigation />
-      <main className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+      <NewNavigation />
+      <main className="w-full">
         {children}
       </main>
     </div>

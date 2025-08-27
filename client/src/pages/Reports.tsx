@@ -1,16 +1,24 @@
 import { useQuery } from '@tanstack/react-query';
 import { useAuthStore } from '@/store/auth';
+import { useTenantStore } from '@/store/tenant';
+import { useWhiteLabelTheme } from '@/lib/theme';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { BarChart3, Users, TrendingUp, Download, Calendar, Target } from 'lucide-react';
-import { useState } from 'react';
+import { BarChart3, Users, TrendingUp, Download, Calendar, Target, FileText } from 'lucide-react';
+import { useState, useEffect } from 'react';
 
 export default function Reports() {
   const { user } = useAuthStore();
+  const { currentTenant } = useTenantStore();
+  const { theme, applyTheme } = useWhiteLabelTheme();
   const [timeRange, setTimeRange] = useState('30d');
+
+  useEffect(() => {
+    applyTheme();
+  }, [applyTheme]);
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ['/api/tenants', user?.tenantId, 'stats'],
@@ -53,184 +61,218 @@ export default function Reports() {
   ];
 
   return (
-    <div className="space-y-6" data-testid="reports-page">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Relatórios e Analytics</h1>
-          <p className="text-muted-foreground">
-            Acompanhe o desempenho e engajamento da sua equipe
+    <div className="min-h-screen theme-background">
+      <div className="container-responsive py-6 md:py-8" data-testid="reports-page">
+        {/* Hero Section */}
+        <div className="text-center mb-8 md:mb-12">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-3 md:mb-4">
+            Relatórios e Analytics
+          </h1>
+          <p className="text-base md:text-lg text-gray-600 max-w-2xl mx-auto">
+            Acompanhe o desempenho, engajamento e resultados da sua equipe com insights detalhados
           </p>
         </div>
-        <div className="flex items-center space-x-2">
-          <Select value={timeRange} onValueChange={setTimeRange}>
-            <SelectTrigger className="w-32" data-testid="time-range-select">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="7d">7 dias</SelectItem>
-              <SelectItem value="30d">30 dias</SelectItem>
-              <SelectItem value="90d">90 dias</SelectItem>
-              <SelectItem value="1y">1 ano</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" data-testid="export-button">
-            <Download className="h-4 w-4 mr-2" />
-            Exportar
-          </Button>
+
+        {/* Controls */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 md:mb-8">
+          <div className="flex items-center space-x-2">
+            <FileText className="h-5 w-5 theme-primary-text" />
+            <span className="font-medium text-gray-900">Período de Análise</span>
+          </div>
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-full sm:w-40" data-testid="time-range-select">
+                <Calendar className="h-4 w-4 mr-2" />
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="7d">7 dias</SelectItem>
+                <SelectItem value="30d">30 dias</SelectItem>
+                <SelectItem value="90d">90 dias</SelectItem>
+                <SelectItem value="1y">1 ano</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button variant="outline" data-testid="export-button" className="w-full sm:w-auto">
+              <Download className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Exportar</span>
+              <span className="sm:hidden">Exportar Dados</span>
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="active-users-count">
-              {stats?.activeUsers || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +12% em relação ao mês anterior
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Taxa de Engajamento</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="engagement-rate">
-              {stats?.engagement || 0}%
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +5% em relação ao mês anterior
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Trilhas Ativas</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="active-trails-count">
-              {stats?.totalTrails || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              3 novas este mês
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">NPS Score</CardTitle>
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold" data-testid="nps-score">
-              {stats?.nps || 0}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +8 pontos este trimestre
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Trail Engagement Report */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Engajamento por Trilha</CardTitle>
-            <CardDescription>
-              Taxa de conclusão e métricas de participação por trilha
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {mockReports[0].trails.map((trail, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-medium">{trail.name}</span>
-                  <Badge variant="outline">{trail.participants} participantes</Badge>
-                </div>
-                <div className="flex justify-between text-sm text-muted-foreground">
-                  <span>Taxa de conclusão: {trail.completion}%</span>
-                  <span>Tempo médio: {trail.avgTime}</span>
-                </div>
-                <Progress value={trail.completion} className="h-2" />
+        {/* KPI Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-12">
+          <Card className="card-responsive hover-lift">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Usuários Ativos</CardTitle>
+              <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5 text-blue-600" />
               </div>
-            ))}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl md:text-3xl font-bold text-gray-900" data-testid="active-users-count">
+                {stats?.activeUsers || 2847}
+              </div>
+              <p className="text-xs md:text-sm text-green-600 font-medium mt-1">
+                +12% vs mês anterior
+              </p>
+            </CardContent>
+          </Card>
 
-        {/* Department Performance */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Performance por Departamento</CardTitle>
-            <CardDescription>
-              Comparativo de pontuação e engajamento entre departamentos
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {mockReports[1].departments.map((dept, index) => (
-              <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
-                <div className="flex-1">
-                  <div className="flex justify-between items-center mb-1">
-                    <span className="font-medium">{dept.name}</span>
+          <Card className="card-responsive hover-lift">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Taxa de Engajamento</CardTitle>
+              <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="h-5 w-5 text-green-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl md:text-3xl font-bold text-gray-900" data-testid="engagement-rate">
+                {stats?.engagement || 78}%
+              </div>
+              <p className="text-xs md:text-sm text-green-600 font-medium mt-1">
+                +5% vs mês anterior
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-responsive hover-lift">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Trilhas Ativas</CardTitle>
+              <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                <Target className="h-5 w-5 text-purple-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl md:text-3xl font-bold text-gray-900" data-testid="active-trails-count">
+                {stats?.totalTrails || 12}
+              </div>
+              <p className="text-xs md:text-sm text-green-600 font-medium mt-1">
+                3 novas este mês
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="card-responsive hover-lift">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">NPS Score</CardTitle>
+              <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
+                <BarChart3 className="h-5 w-5 text-yellow-600" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl md:text-3xl font-bold text-gray-900" data-testid="nps-score">
+                {stats?.nps || 8.5}
+              </div>
+              <p className="text-xs md:text-sm text-green-600 font-medium mt-1">
+                +0.8 este trimestre
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 md:gap-8 mb-8 md:mb-12">
+          {/* Trail Engagement Report */}
+          <Card className="card-responsive">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Target className="h-5 w-5 mr-2 theme-primary-text" />
+                Engajamento por Trilha
+              </CardTitle>
+              <CardDescription>
+                Taxa de conclusão e métricas de participação por trilha
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {mockReports[0].trails.map((trail, index) => (
+                <div key={index} className="space-y-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+                    <span className="font-medium text-gray-900">{trail.name}</span>
+                    <Badge variant="outline" className="w-fit">{trail.participants} participantes</Badge>
+                  </div>
+                  <div className="flex flex-col sm:flex-row sm:justify-between gap-2 text-sm text-muted-foreground">
+                    <span>Taxa de conclusão: {trail.completion}%</span>
+                    <span>Tempo médio: {trail.avgTime}</span>
+                  </div>
+                  <Progress value={trail.completion} className="h-2" />
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+
+          {/* Department Performance */}
+          <Card className="card-responsive">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Users className="h-5 w-5 mr-2 theme-secondary-text" />
+                Performance por Departamento
+              </CardTitle>
+              <CardDescription>
+                Comparativo de pontuação e engajamento entre departamentos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {mockReports[1].departments.map((dept, index) => (
+                <div key={index} className="p-4 border rounded-lg hover-lift transition-all">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 mb-3">
+                    <span className="font-medium text-gray-900">{dept.name}</span>
                     <span className="text-sm text-muted-foreground">{dept.members} membros</span>
                   </div>
-                  <div className="flex justify-between text-sm text-muted-foreground">
-                    <span>{dept.avgPoints} pts médios</span>
-                    <span>{dept.completion}% conclusão</span>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Pontuação média</span>
+                      <p className="font-semibold theme-accent-text">{dept.avgPoints} pts</p>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">Taxa de conclusão</span>
+                      <p className="font-semibold text-green-600">{dept.completion}%</p>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Top Performers */}
+        <Card className="card-responsive">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <TrendingUp className="h-5 w-5 mr-2 theme-accent-text" />
+              Top Performers
+            </CardTitle>
+            <CardDescription>
+              Usuários com melhor desempenho no período selecionado
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {leaderboard.slice(0, 10).map((user: any, index: number) => (
+                <div key={user.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors">
+                  <div className="flex items-center space-x-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
+                      index === 0 ? 'bg-yellow-100 text-yellow-800' :
+                      index === 1 ? 'bg-gray-100 text-gray-800' :
+                      index === 2 ? 'bg-orange-100 text-orange-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {index + 1}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                      <p className="text-sm text-muted-foreground">{user.department}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-lg theme-primary-text">{user.totalPoints}</p>
+                    <p className="text-sm text-muted-foreground">pontos</p>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Top Performers */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Top Performers</CardTitle>
-          <CardDescription>
-            Usuários com melhor desempenho no período selecionado
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {leaderboard.slice(0, 10).map((user: any, index: number) => (
-              <div key={user.id} className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                    index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                    index === 1 ? 'bg-gray-100 text-gray-800' :
-                    index === 2 ? 'bg-orange-100 text-orange-800' :
-                    'bg-muted text-muted-foreground'
-                  }`}>
-                    {index + 1}
-                  </div>
-                  <div>
-                    <p className="font-medium">{user.firstName} {user.lastName}</p>
-                    <p className="text-sm text-muted-foreground">{user.department}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold">{user.totalPoints}</p>
-                  <p className="text-sm text-muted-foreground">pontos</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

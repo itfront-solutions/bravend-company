@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'wouter';
-import { Bell, Users, BarChart3, BookOpen, LayoutDashboard, Settings } from 'lucide-react';
+import { Bell, Users, BarChart3, BookOpen, LayoutDashboard, Settings, Gamepad2, Brain } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
 import { Button } from '@/components/ui/button';
@@ -15,6 +15,8 @@ export default function Navigation() {
     { path: '/', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/trails', label: 'Trilhas', icon: BookOpen },
     { path: '/communities', label: 'Comunidades', icon: Users },
+    { path: '/businessquest', label: 'Business Quest', icon: Gamepad2 },
+    { path: '/conselho-digital', label: 'Conselho Digital', icon: Brain },
     { path: '/reports', label: 'Relatórios', icon: BarChart3 },
   ];
 

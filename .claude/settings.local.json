@@ -1,0 +1,36 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node:*)",
+      "Bash(npm --version)",
+      "Bash(npm install)",
+      "Bash(npm run dev:*)",
+      "Bash(npm install:*)",
+      "Bash(taskkill:*)",
+      "Read(C:\\Projetos\\BusinessQuest/**)",
+      "Read(C:\\Projetos\\BusinessQuest\\client\\src/**)",
+      "Read(C:\\Projetos\\BusinessQuest/**)",
+      "Bash(xcopy:*)",
+      "Bash(mkdir:*)",
+      "Read(C:\\Projetos\\BusinessQuest\\client\\src\\pages/**)",
+      "Read(C:\\Projetos\\BusinessQuest\\client\\src\\pages/**)",
+      "Read(C:\\Projetos\\BusinessQuest\\client\\src\\components/**)",
+      "Read(C:\\Projetos\\BusinessQuest\\client\\src\\pages/**)",
+      "Bash(npm run check:*)",
+      "Read(C:\\Projetos\\ConselhoDigital/**)",
+      "Read(C:\\Projetos\\ConselhoDigital\\client\\src/**)",
+      "Read(C:\\Projetos\\ConselhoDigital/**)",
+      "Read(C:\\Projetos\\ConselhoDigital\\client\\src\\pages/**)",
+      "Read(C:\\Projetos\\ConselhoDigital\\client\\src\\pages/**)",
+      "Read(C:\\Projetos\\ConselhoDigital\\client\\src\\pages/**)",
+      "Read(C:\\Projetos\\ConselhoDigital\\client\\src\\pages/**)",
+      "Read(C:\\Projetos\\ConselhoDigital\\client\\src\\components\\layout/**)",
+      "Read(C:\\Projetos\\ConselhoDigital\\client\\src\\components\\dashboard/**)"
+    ],
+    "deny": [],
+    "ask": [],
+    "additionalDirectories": [
+      "C:\\Projetos\\BusinessQuest"
+    ]
+  }
+}
