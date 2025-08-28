@@ -2,8 +2,10 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import jwt from "jsonwebtoken";
 import { storage } from "./storage";
+import { aiService } from "./ai-service";
 import { loginSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
+import { wineQuizRoutes } from "./wine-quiz-routes";
 
 // Extend Express Request type to include user property
 interface AuthenticatedRequest extends Request {
@@ -396,6 +398,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Internal server error" });
     }
   });
+
+  // AI Chat routes
+  app.post("/api/ai/chat", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { message, topic = 'board', provider = 'openai' } = req.body;
+      
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      const context = aiService.getGovernanceContext(topic);
+      const messages = [
+        { role: 'user' as const, content: message }
+      ];
+
+      const response = await aiService.generateResponse(messages, context, provider);
+      res.json(response);
+    } catch (error) {
+      console.error('AI chat error:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  app.post("/api/ai/conversation", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const { messages, topic = 'board', provider = 'openai' } = req.body;
+      
+      if (!messages || !Array.isArray(messages)) {
+        return res.status(400).json({ message: "Messages array is required" });
+      }
+
+      const context = aiService.getGovernanceContext(topic);
+      const response = await aiService.generateResponse(messages, context, provider);
+      res.json(response);
+    } catch (error) {
+      console.error('AI conversation error:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Wine Quiz routes
+  app.use("/api/wine-quiz", wineQuizRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

@@ -4,35 +4,89 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, MessageSquare, BarChart3, Send, ArrowLeft } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Brain, MessageSquare, BarChart3, Send, ArrowLeft, Loader2, Settings } from "lucide-react";
 import { Link } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function AICoach() {
   const { user } = useAuthStore();
+  const { toast } = useToast();
   const [message, setMessage] = useState("");
-  const [chatHistory] = useState([
+  const [isLoading, setIsLoading] = useState(false);
+  const [provider, setProvider] = useState<'openai' | 'gemini'>('openai');
+  const [topic, setTopic] = useState('board');
+  const [chatHistory, setChatHistory] = useState([
     {
       type: "ai",
       message: "Olá! Sou seu mentor IA especializado em governança corporativa. Como posso ajudá-lo hoje?",
-      timestamp: "10:00"
-    },
-    {
-      type: "user", 
-      message: "Como posso melhorar a performance da TechCorp?",
-      timestamp: "10:01"
-    },
-    {
-      type: "ai",
-      message: "Baseado nos dados da TechCorp, recomendo focar em 3 áreas: 1) Implementar métricas ESG mais robustas, 2) Diversificar o conselho com especialistas em tecnologia, 3) Estabelecer um comitê de auditoria mais independente.",
-      timestamp: "10:02"
+      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
 
-  const handleSendMessage = () => {
-    if (message.trim()) {
-      // In a real implementation, this would send to the AI service
-      setMessage("");
+  const handleSendMessage = async () => {
+    if (!message.trim() || isLoading) return;
+
+    const userMessage = {
+      type: "user",
+      message: message.trim(),
+      timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    };
+
+    setChatHistory(prev => [...prev, userMessage]);
+    setMessage("");
+    setIsLoading(true);
+
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          message: message.trim(),
+          topic,
+          provider
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const aiResponse = await response.json();
+      
+      const aiMessage = {
+        type: "ai",
+        message: aiResponse.message,
+        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setChatHistory(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Erro ao enviar mensagem:', error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível enviar a mensagem. Tente novamente.",
+        variant: "destructive",
+      });
+      
+      const errorMessage = {
+        type: "ai",
+        message: "Desculpe, houve um erro ao processar sua mensagem. Por favor, tente novamente.",
+        timestamp: new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setChatHistory(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleSuggestedQuestion = (question: string) => {
+    setMessage(question);
   };
 
   return (
@@ -63,10 +117,14 @@ export default function AICoach() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs defaultValue="chat" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="chat" className="flex items-center">
               <MessageSquare className="w-4 h-4 mr-2" />
               Chat com IA
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex items-center">
+              <Settings className="w-4 h-4 mr-2" />
+              Configurações
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center">
               <BarChart3 className="w-4 h-4 mr-2" />
@@ -97,7 +155,7 @@ export default function AICoach() {
                               ? 'bg-primary text-white' 
                               : 'bg-gray-100 text-gray-900'
                           }`}>
-                            <p className="text-sm">{msg.message}</p>
+                            <p className="text-sm whitespace-pre-wrap">{msg.message}</p>
                             <p className={`text-xs mt-1 ${
                               msg.type === 'user' ? 'text-blue-100' : 'text-gray-500'
                             }`}>
@@ -106,6 +164,18 @@ export default function AICoach() {
                           </div>
                         </div>
                       ))}
+                      
+                      {/* Loading indicator */}
+                      {isLoading && (
+                        <div className="flex justify-start">
+                          <div className="max-w-[70%] p-3 rounded-lg bg-gray-100 text-gray-900">
+                            <div className="flex items-center space-x-2">
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                              <span className="text-sm">Pensando...</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                     
                     {/* Message Input */}
@@ -117,8 +187,12 @@ export default function AICoach() {
                         onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
                         className="flex-1"
                       />
-                      <Button onClick={handleSendMessage}>
-                        <Send className="w-4 h-4" />
+                      <Button onClick={handleSendMessage} disabled={isLoading || !message.trim()}>
+                        {isLoading ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
                       </Button>
                     </div>
                   </CardContent>
@@ -132,16 +206,36 @@ export default function AICoach() {
                     <CardTitle className="text-sm">Tópicos Sugeridos</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
-                    <Button variant="outline" className="w-full text-left text-xs h-auto p-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-left text-xs h-auto p-2"
+                      onClick={() => handleSuggestedQuestion("Como melhorar ESG na minha empresa?")}
+                      disabled={isLoading}
+                    >
                       Como melhorar ESG na minha empresa?
                     </Button>
-                    <Button variant="outline" className="w-full text-left text-xs h-auto p-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-left text-xs h-auto p-2"
+                      onClick={() => handleSuggestedQuestion("Estratégias para diversificar o conselho")}
+                      disabled={isLoading}
+                    >
                       Estratégias para diversificar o conselho
                     </Button>
-                    <Button variant="outline" className="w-full text-left text-xs h-auto p-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-left text-xs h-auto p-2"
+                      onClick={() => handleSuggestedQuestion("Métricas de performance do conselho")}
+                      disabled={isLoading}
+                    >
                       Métricas de performance do conselho
                     </Button>
-                    <Button variant="outline" className="w-full text-left text-xs h-auto p-2">
+                    <Button 
+                      variant="outline" 
+                      className="w-full text-left text-xs h-auto p-2"
+                      onClick={() => handleSuggestedQuestion("Como conduzir uma reunião eficaz")}
+                      disabled={isLoading}
+                    >
                       Como conduzir uma reunião eficaz
                     </Button>
                   </CardContent>
@@ -161,6 +255,95 @@ export default function AICoach() {
                   </CardContent>
                 </Card>
               </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="settings" className="mt-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Configurações da IA</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Provedor de IA</label>
+                    <Select value={provider} onValueChange={(value: 'openai' | 'gemini') => setProvider(value)}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="openai">OpenAI GPT-3.5</SelectItem>
+                        <SelectItem value="gemini">Google Gemini Pro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Escolha o provedor de IA para as respostas do mentor
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="text-sm font-medium text-gray-700">Especialização</label>
+                    <Select value={topic} onValueChange={setTopic}>
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="board">Conselhos de Administração</SelectItem>
+                        <SelectItem value="esg">ESG e Sustentabilidade</SelectItem>
+                        <SelectItem value="strategy">Estratégia Corporativa</SelectItem>
+                        <SelectItem value="compliance">Compliance e Auditoria</SelectItem>
+                        <SelectItem value="leadership">Liderança Executiva</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Define o contexto especializado para as respostas
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Status da Integração</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-green-800">OpenAI</div>
+                        <div className="text-sm text-green-600">Conectado</div>
+                      </div>
+                      <div className="w-3 h-3 bg-green-500 rounded-full"></div>
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                      <div>
+                        <div className="font-medium text-blue-800">Google Gemini</div>
+                        <div className="text-sm text-blue-600">Conectado</div>
+                      </div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    </div>
+
+                    <div className="pt-4 border-t">
+                      <h4 className="font-medium text-gray-900 mb-2">Estatísticas de Uso</h4>
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Mensagens hoje:</span>
+                          <span className="font-medium">12</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Tempo médio de resposta:</span>
+                          <span className="font-medium">1.2s</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-600">Provedor mais usado:</span>
+                          <span className="font-medium">OpenAI</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </TabsContent>
 

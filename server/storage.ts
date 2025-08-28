@@ -16,6 +16,43 @@ import {
   type Event,
   type LoginRequest
 } from "@shared/schema";
+
+// WineQuiz specific interfaces
+interface WineQuizQuestion {
+  id: number;
+  questionText: string;
+  questionType: "multiple_choice" | "dropdown" | "autocomplete";
+  optionA?: string;
+  optionB?: string;
+  optionC?: string;
+  optionD?: string;
+  correctOption?: "a" | "b" | "c" | "d";
+  options?: string[];
+  correctAnswer?: string;
+  weight: number;
+  difficulty: number;
+  category?: string;
+}
+
+interface WineQuizTeam {
+  id: number;
+  name: string;
+  qrData: string;
+  capacity: number;
+  participants: string[];
+  totalScore: number;
+  correctAnswers: number;
+  avgResponseTime: number;
+}
+
+interface WineQuizSession {
+  id: number;
+  status: "active" | "inactive";
+  gameMode: "individual" | "leader";
+  currentQuestionId?: number;
+  startedAt?: Date;
+  endedAt?: Date;
+}
 import { randomUUID } from "crypto";
 
 export interface IStorage {
@@ -71,6 +108,13 @@ export interface IStorage {
   // Events methods
   getEvents(tenantId: string): Promise<Event[]>;
   getUpcomingEvents(tenantId: string, limit?: number): Promise<Event[]>;
+  
+  // WineQuiz methods
+  getWineQuizQuestions(): Promise<WineQuizQuestion[]>;
+  getWineQuizTeams(): Promise<WineQuizTeam[]>;
+  getWineQuizSession(): Promise<WineQuizSession | null>;
+  createWineQuizQuestion(question: Omit<WineQuizQuestion, 'id'>): Promise<WineQuizQuestion>;
+  updateWineQuizTeamScore(teamId: number, score: number): Promise<WineQuizTeam | undefined>;
 }
 
 export class MemStorage implements IStorage {
@@ -85,6 +129,11 @@ export class MemStorage implements IStorage {
   private pointsHistory: Map<string, PointsHistory>;
   private communities: Map<string, Community>;
   private events: Map<string, Event>;
+  
+  // WineQuiz data
+  private wineQuizQuestions: Map<number, WineQuizQuestion>;
+  private wineQuizTeams: Map<number, WineQuizTeam>;
+  private wineQuizSession: WineQuizSession | null;
 
   constructor() {
     this.tenants = new Map();
@@ -98,6 +147,11 @@ export class MemStorage implements IStorage {
     this.pointsHistory = new Map();
     this.communities = new Map();
     this.events = new Map();
+    
+    // WineQuiz initialization
+    this.wineQuizQuestions = new Map();
+    this.wineQuizTeams = new Map();
+    this.wineQuizSession = null;
     
     this.initializeMockData();
   }
@@ -262,7 +316,42 @@ export class MemStorage implements IStorage {
       }
     ];
 
+    // Create Carvion trails
+    const carvionTrails: Trail[] = [
+      {
+        id: "carvion-trail-1",
+        tenantId: carvionTenant.id,
+        title: "Desenvolvimento Full-Stack Avançado",
+        description: "Domine as tecnologias modernas de desenvolvimento web",
+        category: "Tecnologia",
+        difficulty: "advanced",
+        estimatedHours: 40,
+        thumbnailUrl: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=300",
+        totalModules: 12,
+        pointsReward: 800,
+        isActive: true,
+        createdBy: "user-4",
+        createdAt: new Date()
+      },
+      {
+        id: "carvion-trail-2",
+        tenantId: carvionTenant.id,
+        title: "DevOps e Cloud Computing",
+        description: "Aprenda a implementar práticas DevOps e soluções em nuvem",
+        category: "Infrastructure",
+        difficulty: "intermediate",
+        estimatedHours: 30,
+        thumbnailUrl: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=300",
+        totalModules: 10,
+        pointsReward: 700,
+        isActive: true,
+        createdBy: "user-4",
+        createdAt: new Date()
+      }
+    ];
+
     trails.forEach(trail => this.trails.set(trail.id, trail));
+    carvionTrails.forEach(trail => this.trails.set(trail.id, trail));
 
     // Create modules
     const modules: Module[] = [
@@ -323,6 +412,30 @@ export class MemStorage implements IStorage {
         startedAt: new Date(Date.now() - 14 * 24 * 60 * 60 * 1000),
         completedAt: null,
         lastAccessedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)
+      },
+      {
+        id: "progress-3",
+        userId: "user-4",
+        trailId: "carvion-trail-1",
+        currentModuleId: "module-1",
+        completedModules: 3,
+        progressPercentage: 25,
+        totalTimeSpent: 240,
+        startedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+        completedAt: null,
+        lastAccessedAt: new Date()
+      },
+      {
+        id: "progress-4",
+        userId: "user-4",
+        trailId: "carvion-trail-2",
+        currentModuleId: null,
+        completedModules: 7,
+        progressPercentage: 70,
+        totalTimeSpent: 420,
+        startedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000),
+        completedAt: null,
+        lastAccessedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
       }
     ];
 
@@ -395,6 +508,135 @@ export class MemStorage implements IStorage {
     ];
 
     events.forEach(event => this.events.set(event.id, event));
+
+    // Initialize WineQuiz data
+    const wineQuizQuestions: WineQuizQuestion[] = [
+      {
+        id: 1,
+        questionText: "Qual região é famosa pelo vinho Champagne?",
+        questionType: "multiple_choice",
+        optionA: "Borgonha",
+        optionB: "Champagne", 
+        optionC: "Bordeaux",
+        optionD: "Loire",
+        correctOption: "b",
+        weight: 10,
+        difficulty: 2,
+        category: "Geografia"
+      },
+      {
+        id: 2,
+        questionText: "Qual uva é usada para fazer Chablis?",
+        questionType: "autocomplete",
+        options: ["Chardonnay", "Sauvignon Blanc", "Pinot Noir", "Merlot", "Cabernet Sauvignon"],
+        correctAnswer: "Chardonnay",
+        weight: 15,
+        difficulty: 4,
+        category: "Castas"
+      },
+      {
+        id: 3,
+        questionText: "Em que ano foi estabelecida a classificação de 1855 de Bordeaux?",
+        questionType: "multiple_choice",
+        optionA: "1854",
+        optionB: "1855",
+        optionC: "1856", 
+        optionD: "1860",
+        correctOption: "b",
+        weight: 20,
+        difficulty: 5,
+        category: "História"
+      },
+      {
+        id: 4,
+        questionText: "Qual prato harmoniza melhor com Pinot Noir?",
+        questionType: "multiple_choice",
+        optionA: "Peixe grelhado",
+        optionB: "Salada verde",
+        optionC: "Cordeiro assado",
+        optionD: "Queijos frescos",
+        correctOption: "c",
+        weight: 10,
+        difficulty: 3,
+        category: "Harmonização"
+      },
+      {
+        id: 5,
+        questionText: "Quantos anos um vinho pode envelhecer em carvalho para ser considerado 'envelhecido'?",
+        questionType: "multiple_choice",
+        optionA: "6 meses",
+        optionB: "1 ano",
+        optionC: "2 anos",
+        optionD: "5 anos",
+        correctOption: "c",
+        weight: 15,
+        difficulty: 4,
+        category: "Envelhecimento"
+      }
+    ];
+
+    const wineQuizTeams: WineQuizTeam[] = [
+      {
+        id: 1,
+        name: "Mesa 1 - Terroir",
+        qrData: "wine-quiz-team-1",
+        capacity: 4,
+        participants: [],
+        totalScore: 185,
+        correctAnswers: 18,
+        avgResponseTime: 8.5
+      },
+      {
+        id: 2,
+        name: "Mesa 2 - Harmonização", 
+        qrData: "wine-quiz-team-2",
+        capacity: 4,
+        participants: [],
+        totalScore: 172,
+        correctAnswers: 16,
+        avgResponseTime: 12.3
+      },
+      {
+        id: 3,
+        name: "Mesa 3 - Envelhecimento",
+        qrData: "wine-quiz-team-3", 
+        capacity: 4,
+        participants: [],
+        totalScore: 168,
+        correctAnswers: 17,
+        avgResponseTime: 7.8
+      },
+      {
+        id: 4,
+        name: "Mesa 4 - Degustação",
+        qrData: "wine-quiz-team-4",
+        capacity: 4, 
+        participants: [],
+        totalScore: 156,
+        correctAnswers: 14,
+        avgResponseTime: 15.2
+      },
+      {
+        id: 5,
+        name: "Mesa 5 - Vinificação",
+        qrData: "wine-quiz-team-5",
+        capacity: 4,
+        participants: [],
+        totalScore: 143,
+        correctAnswers: 13,
+        avgResponseTime: 11.7
+      }
+    ];
+
+    wineQuizQuestions.forEach(question => this.wineQuizQuestions.set(question.id, question));
+    wineQuizTeams.forEach(team => this.wineQuizTeams.set(team.id, team));
+
+    // Initialize session
+    this.wineQuizSession = {
+      id: 1,
+      status: "inactive",
+      gameMode: "individual"
+    };
   }
 
   async authenticateUser(credentials: LoginRequest): Promise<User | null> {
@@ -637,6 +879,36 @@ export class MemStorage implements IStorage {
       .filter(e => e.tenantId === tenantId && e.isActive && e.startTime > now)
       .sort((a, b) => a.startTime.getTime() - b.startTime.getTime())
       .slice(0, limit);
+  }
+
+  // WineQuiz methods
+  async getWineQuizQuestions(): Promise<WineQuizQuestion[]> {
+    return Array.from(this.wineQuizQuestions.values());
+  }
+
+  async getWineQuizTeams(): Promise<WineQuizTeam[]> {
+    return Array.from(this.wineQuizTeams.values());
+  }
+
+  async getWineQuizSession(): Promise<WineQuizSession | null> {
+    return this.wineQuizSession;
+  }
+
+  async createWineQuizQuestion(questionData: Omit<WineQuizQuestion, 'id'>): Promise<WineQuizQuestion> {
+    const id = Array.from(this.wineQuizQuestions.keys()).reduce((max, key) => Math.max(max, key), 0) + 1;
+    const question: WineQuizQuestion = { ...questionData, id };
+    this.wineQuizQuestions.set(id, question);
+    return question;
+  }
+
+  async updateWineQuizTeamScore(teamId: number, score: number): Promise<WineQuizTeam | undefined> {
+    const team = this.wineQuizTeams.get(teamId);
+    if (team) {
+      team.totalScore = score;
+      this.wineQuizTeams.set(teamId, team);
+      return team;
+    }
+    return undefined;
   }
 }
 

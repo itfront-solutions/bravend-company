@@ -28,6 +28,13 @@ import ConselhoDigitalDashboard from "@/pages/conselho-digital/Dashboard";
 import ConselhoDigitalAICoach from "@/pages/conselho-digital/AICoach";
 import ConselhoDigitalPortfolio from "@/pages/conselho-digital/Portfolio";
 
+// Vinhonarios Pages
+import VinhosVisoes from "@/pages/vinhonarios/VinhosVisoes";
+import WineQuizAdminDashboard from "@/pages/vinhonarios/AdminDashboard";
+import QrCodes from "@/pages/vinhonarios/QrCodes";
+import Scoreboard from "@/pages/vinhonarios/Scoreboard";
+import ResultsChart from "@/pages/vinhonarios/ResultsChart";
+
 // Components
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Layout from "@/components/Layout";
@@ -73,6 +80,11 @@ function Router() {
             <Route path="/conselho-digital/dashboard" component={ConselhoDigitalDashboard} />
             <Route path="/conselho-digital/coach" component={ConselhoDigitalAICoach} />
             <Route path="/conselho-digital/portfolio" component={ConselhoDigitalPortfolio} />
+            <Route path="/vinhonarios/vinhos-visoes" component={VinhosVisoes} />
+            <Route path="/vinhonarios/admin" component={WineQuizAdminDashboard} />
+            <Route path="/vinhonarios/qr-codes" component={QrCodes} />
+            <Route path="/vinhonarios/scoreboard" component={Scoreboard} />
+            <Route path="/vinhonarios/results-chart" component={ResultsChart} />
             <Route component={NotFound} />
           </Switch>
         </LayoutComponent>

@@ -22,7 +22,10 @@ import {
   HelpCircle,
   LogOut,
   Menu,
-  X
+  X,
+  Wine,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -41,16 +44,19 @@ interface NavItem {
   id: string;
   label: string;
   icon: any;
-  path: string;
+  path?: string;
   badge?: string;
   color?: string;
   category: 'main' | 'modules' | 'admin' | 'support';
   roles?: string[];
   isActive?: boolean;
+  children?: NavItem[];
+  isParent?: boolean;
 }
 
 export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMobileToggle }: SidebarProps) {
   const [location] = useLocation();
+  const [expandedMenus, setExpandedMenus] = useState<string[]>([]);
   const { user, logout } = useAuthStore();
   const { currentTenant } = useTenantStore();
   const { theme } = useWhiteLabelTheme();
@@ -103,6 +109,25 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
       color: 'text-pink-600',
       badge: 'Premium'
     },
+    {
+      id: 'vinhonarios',
+      label: 'Vinhonarios',
+      icon: Wine,
+      category: 'modules',
+      color: 'text-purple-600',
+      isParent: true,
+      children: [
+        {
+          id: 'vinhos-visoes',
+          label: 'Vinhos & Visões',
+          icon: Wine,
+          path: '/vinhonarios/vinhos-visoes',
+          category: 'modules',
+          color: 'text-purple-600',
+          badge: 'Novo'
+        }
+      ]
+    },
     
     // Analytics & Reports
     {
@@ -147,13 +172,106 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
     return true;
   });
 
-  const isActive = (path: string) => {
+  const isActive = (path?: string, children?: NavItem[]) => {
+    if (!path && children) {
+      return children.some(child => child.path && location.startsWith(child.path));
+    }
     if (path === '/') return location === '/';
-    return location.startsWith(path);
+    return path ? location.startsWith(path) : false;
+  };
+
+  const toggleMenu = (menuId: string) => {
+    setExpandedMenus(prev => 
+      prev.includes(menuId) 
+        ? prev.filter(id => id !== menuId)
+        : [...prev, menuId]
+    );
   };
 
   const getCategoryItems = (category: string) => {
     return filteredNavItems.filter(item => item.category === category);
+  };
+
+  const renderMenuItem = (item: NavItem, depth = 0) => {
+    const Icon = item.icon;
+    const active = isActive(item.path, item.children);
+    const isExpanded = expandedMenus.includes(item.id);
+    const hasChildren = item.children && item.children.length > 0;
+
+    if (hasChildren) {
+      return (
+        <li key={item.id} className="space-y-1">
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start h-10",
+              isCollapsed ? "px-2" : "px-3",
+              active 
+                ? "bg-purple-50 text-purple-700 border-r-2 border-purple-700" 
+                : "text-gray-700 hover:bg-gray-50"
+            )}
+            onClick={() => !isCollapsed && toggleMenu(item.id)}
+          >
+            <Icon className={cn("h-5 w-5", item.color, isCollapsed ? "" : "mr-3")} />
+            {!isCollapsed && (
+              <>
+                <span className="truncate flex-1 text-left">{item.label}</span>
+                {hasChildren && (
+                  isExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )
+                )}
+                {item.badge && (
+                  <Badge variant="secondary" className="ml-2 text-xs">
+                    {item.badge}
+                  </Badge>
+                )}
+              </>
+            )}
+          </Button>
+          
+          {/* Submenu items */}
+          {!isCollapsed && hasChildren && isExpanded && (
+            <ul className="ml-6 space-y-1">
+              {item.children!.map(child => renderMenuItem(child, depth + 1))}
+            </ul>
+          )}
+        </li>
+      );
+    }
+
+    // Regular menu item
+    return (
+      <li key={item.id}>
+        <Link href={item.path!}>
+          <Button
+            variant="ghost"
+            className={cn(
+              "w-full justify-start h-10",
+              isCollapsed ? "px-2" : "px-3",
+              depth > 0 ? "text-sm" : "",
+              active 
+                ? "bg-purple-50 text-purple-700 border-r-2 border-purple-700" 
+                : "text-gray-700 hover:bg-gray-50"
+            )}
+          >
+            <Icon className={cn("h-5 w-5", item.color, isCollapsed ? "" : "mr-3")} />
+            {!isCollapsed && (
+              <>
+                <span className="truncate">{item.label}</span>
+                {item.badge && (
+                  <Badge variant="secondary" className="ml-auto text-xs">
+                    {item.badge}
+                  </Badge>
+                )}
+              </>
+            )}
+          </Button>
+        </Link>
+      </li>
+    );
   };
 
   const SidebarContent = () => (
@@ -277,39 +395,7 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
               </h3>
             )}
             <ul className="space-y-1">
-              {getCategoryItems('modules').map((item) => {
-                const Icon = item.icon;
-                const active = isActive(item.path);
-                
-                return (
-                  <li key={item.id}>
-                    <Link href={item.path}>
-                      <Button
-                        variant="ghost"
-                        className={cn(
-                          "w-full justify-start h-10",
-                          isCollapsed ? "px-2" : "px-3",
-                          active 
-                            ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700" 
-                            : "text-gray-700 hover:bg-gray-50"
-                        )}
-                      >
-                        <Icon className={cn("h-5 w-5", item.color, isCollapsed ? "" : "mr-3")} />
-                        {!isCollapsed && (
-                          <>
-                            <span className="truncate">{item.label}</span>
-                            {item.badge && (
-                              <Badge variant="secondary" className="ml-auto text-xs">
-                                {item.badge}
-                              </Badge>
-                            )}
-                          </>
-                        )}
-                      </Button>
-                    </Link>
-                  </li>
-                );
-              })}
+              {getCategoryItems('modules').map((item) => renderMenuItem(item))}
             </ul>
           </div>
 

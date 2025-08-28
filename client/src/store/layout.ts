@@ -23,7 +23,7 @@ interface LayoutState {
 }
 
 const defaultState = {
-  layoutType: 'top-navigation' as LayoutType,
+  layoutType: 'left-sidebar' as LayoutType,
   themeMode: 'light' as ThemeMode,
   sidebarCollapsed: false,
   compactMode: false,

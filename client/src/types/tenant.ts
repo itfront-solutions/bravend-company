@@ -196,5 +196,23 @@ export const AVAILABLE_MODULES: AvailableModule[] = [
       'Suporte técnico prioritário'
     ],
     pricing: { monthly: 79, yearly: 790 }
+  },
+  {
+    id: 'vinhonarios',
+    name: 'Vinhonarios',
+    description: 'Módulo de quiz interativo sobre vinhos e enologia',
+    icon: 'Wine',
+    category: 'learning',
+    features: [
+      'Quiz interativo sobre vinhos',
+      'Múltiplos tipos de perguntas',
+      'Modo equipe e individual',
+      'Sistema de pontuação',
+      'Relatórios de desempenho',
+      'QR Codes para acesso rápido',
+      'Temas sobre terroir e harmonização'
+    ],
+    pricing: { monthly: 35, yearly: 350, setup: 150 },
+    isPopular: true
   }
 ];
