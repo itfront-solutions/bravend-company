@@ -1,5 +1,8 @@
 import bcrypt from 'bcrypt';
 import { nanoid } from 'nanoid';
+import { drizzle } from 'drizzle-orm/neon-http';
+import { neon } from '@neondatabase/serverless';
+import { eq, and, desc, sql } from 'drizzle-orm';
 import {
   wineTeams, wineUsers, wineQuestions, wineGameSessions, wineAnswers, wineAdmins, 
   wineRounds, wineRoundResults, wineTeamRegistrations, wineUserSessionState,
@@ -252,7 +255,13 @@ export class WineQuizMemStorage implements IWineQuizStorage {
 
   async createTeam(teamData: InsertWineTeam): Promise<WineTeam> {
     const id = Math.max(...Array.from(this.teams.keys()), 0) + 1;
-    const team: WineTeam = { id, ...teamData };
+    const team: WineTeam = { 
+      id, 
+      ...teamData,
+      qrCode: teamData.qrCode || null,
+      maxMembers: teamData.maxMembers || null,
+      icon: teamData.icon || null
+    };
     this.teams.set(id, team);
     return team;
   }
@@ -271,7 +280,10 @@ export class WineQuizMemStorage implements IWineQuizStorage {
     const user: WineUser = { 
       id, 
       ...userData,
+      teamId: userData.teamId || null,
+      isLeader: userData.isLeader || null,
       sessionToken: userData.sessionToken || nanoid(),
+      deviceFingerprint: userData.deviceFingerprint || null,
       createdAt: new Date()
     };
     this.users.set(id, user);
@@ -322,7 +334,19 @@ export class WineQuizMemStorage implements IWineQuizStorage {
 
   async createQuestion(questionData: InsertWineQuestion): Promise<WineQuestion> {
     const id = Math.max(...Array.from(this.questions.keys()), 0) + 1;
-    const question: WineQuestion = { id, ...questionData };
+    const question: WineQuestion = { 
+      id, 
+      ...questionData,
+      options: questionData.options || null,
+      questionType: questionData.questionType || null,
+      optionA: questionData.optionA || null,
+      optionB: questionData.optionB || null,
+      optionC: questionData.optionC || null,
+      optionD: questionData.optionD || null,
+      correctAnswer: questionData.correctAnswer || null,
+      explanation: questionData.explanation || null,
+      roundId: questionData.roundId || null
+    };
     this.questions.set(id, question);
     return question;
   }
@@ -346,7 +370,7 @@ export class WineQuizMemStorage implements IWineQuizStorage {
 
   async searchQuestionOptions(questionId: number, searchTerm: string): Promise<string[]> {
     const question = this.questions.get(questionId);
-    if (!question || !question.options) return [];
+    if (!question || !question.options || !Array.isArray(question.options)) return [];
     
     return question.options.filter(option => 
       option.toLowerCase().includes(searchTerm.toLowerCase())
@@ -356,7 +380,15 @@ export class WineQuizMemStorage implements IWineQuizStorage {
   // Game session methods
   async createGameSession(sessionData: InsertWineGameSession): Promise<WineGameSession> {
     const id = Math.max(...Array.from(this.gameSessions.keys()), 0) + 1;
-    const session: WineGameSession = { id, ...sessionData };
+    const session: WineGameSession = { 
+      id, 
+      ...sessionData,
+      status: sessionData.status || null,
+      endTime: sessionData.endTime || null,
+      durationSeconds: sessionData.durationSeconds || null,
+      currentQuestionId: sessionData.currentQuestionId || null,
+      currentRoundId: sessionData.currentRoundId || null
+    };
     this.gameSessions.set(id, session);
     return session;
   }
@@ -389,7 +421,15 @@ export class WineQuizMemStorage implements IWineQuizStorage {
     const id = Math.max(...Array.from(this.answers.keys()), 0) + 1;
     const answer: WineAnswer = { 
       id, 
-      ...answerData, 
+      ...answerData,
+      userId: answerData.userId || null,
+      sessionId: answerData.sessionId || null,
+      roundId: answerData.roundId || null,
+      selectedOption: answerData.selectedOption || null,
+      questionId: answerData.questionId || null,
+      textAnswer: answerData.textAnswer || null,
+      isCorrect: answerData.isCorrect || null,
+      pointsAwarded: answerData.pointsAwarded || null,
       answeredAt: new Date()
     };
     this.answers.set(id, answer);
@@ -464,6 +504,11 @@ export class WineQuizMemStorage implements IWineQuizStorage {
     const round: WineRound = { 
       id, 
       ...roundData,
+      description: roundData.description || null,
+      sessionId: roundData.sessionId || null,
+      wineType: roundData.wineType || null,
+      questionIds: roundData.questionIds || null,
+      status: roundData.status || null,
       startTime: roundData.startTime || null,
       endTime: roundData.endTime || null
     };
@@ -609,6 +654,17 @@ export class WineQuizMemStorage implements IWineQuizStorage {
     const state: WineUserSessionState = {
       id,
       ...stateData,
+      currentQuestionId: stateData.currentQuestionId || null,
+      questionStartTime: stateData.questionStartTime || null,
+      roundId: stateData.roundId || null,
+      deviceFingerprint: stateData.deviceFingerprint || null,
+      userAgent: stateData.userAgent || null,
+      selectedOption: stateData.selectedOption || null,
+      textAnswerDraft: stateData.textAnswerDraft || null,
+      hasAnsweredCurrent: stateData.hasAnsweredCurrent || false,
+      isRoundCompleted: stateData.isRoundCompleted || false,
+      isQuizCompleted: stateData.isQuizCompleted || false,
+      timeRemaining: stateData.timeRemaining || null,
       lastActivity: new Date(),
       lastSyncedAt: new Date(),
       createdAt: new Date(),
@@ -633,7 +689,7 @@ export class WineQuizMemStorage implements IWineQuizStorage {
 
   async clearUserSessionState(userId: number): Promise<void> {
     // Remove all session states for this user
-    for (const [key, state] of this.userSessionStates) {
+    for (const [key, state] of this.userSessionStates.entries()) {
       if (state.userId === userId) {
         this.userSessionStates.delete(key);
       }

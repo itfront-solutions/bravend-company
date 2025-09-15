@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
-import { wineQuizStorage } from './wine-quiz-storage';
+import { wineQuizStorage } from './wine-quiz-db-storage';
 
 const router = express.Router();
 

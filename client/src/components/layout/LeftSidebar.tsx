@@ -25,7 +25,8 @@ import {
   X,
   Wine,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Star
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth';
 import { useTenantStore } from '@/store/tenant';
@@ -119,12 +120,62 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
       children: [
         {
           id: 'vinhos-visoes',
-          label: 'Vinhos & Visões',
+          label: 'Menu Principal',
           icon: Wine,
           path: '/vinhonarios/vinhos-visoes',
           category: 'modules',
-          color: 'text-purple-600',
-          badge: 'Novo'
+          color: 'text-purple-600'
+        },
+        {
+          id: 'scoreboard',
+          label: 'Scoreboard',
+          icon: BarChart3,
+          path: '/vinhonarios/scoreboard',
+          category: 'modules',
+          color: 'text-yellow-600'
+        }
+      ]
+    },
+    {
+      id: 'nps',
+      label: 'Sistema NPS',
+      icon: Star,
+      category: 'modules',
+      color: 'text-amber-600',
+      badge: 'Novo',
+      isParent: true,
+      children: [
+        {
+          id: 'nps-dashboard',
+          label: 'Dashboard',
+          icon: LayoutDashboard,
+          path: '/nps',
+          category: 'modules',
+          color: 'text-amber-600'
+        },
+        {
+          id: 'nps-surveys',
+          label: 'Pesquisas',
+          icon: Star,
+          path: '/nps/surveys',
+          category: 'modules',
+          color: 'text-amber-600'
+        },
+        {
+          id: 'nps-create',
+          label: 'Nova Pesquisa',
+          icon: Star,
+          path: '/nps/create',
+          category: 'modules',
+          color: 'text-amber-600'
+        },
+        {
+          id: 'nps-calculator',
+          label: 'Calculadora NPS',
+          icon: Star,
+          path: '/nps/calculator',
+          category: 'modules',
+          color: 'text-amber-600'
         }
       ]
     },
@@ -141,13 +192,13 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
     },
     
     // Admin section (only for main domain or super admins)
-    ...(isMainDomain || user?.roles?.includes('super_admin') ? [
+    ...(isMainDomain || user?.role === 'super_admin' ? [
       {
         id: 'admin',
         label: 'Painel Admin',
         icon: Shield,
         path: '/admin',
-        category: 'admin',
+        category: 'admin' as const,
         color: 'text-red-600',
         roles: ['admin', 'super_admin']
       }
@@ -159,15 +210,15 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
       label: 'Ajuda',
       icon: HelpCircle,
       path: '/help',
-      category: 'support',
+      category: 'support' as const,
       color: 'text-gray-600'
     }
   ];
 
   // Filter items based on user roles and tenant
   const filteredNavItems = navItems.filter(item => {
-    if (item.roles && user?.roles) {
-      return item.roles.some(role => user.roles.includes(role));
+    if (item.roles && user?.role) {
+      return item.roles.includes(user.role);
     }
     return true;
   });
@@ -283,7 +334,7 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
       )}>
         {!isCollapsed && (
           <div className="flex items-center space-x-3">
-            {currentTenant?.theme.logo ? (
+            {currentTenant?.theme?.logo ? (
               <img 
                 src={currentTenant.theme.logo} 
                 alt={currentTenant.brandName}
@@ -355,7 +406,7 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
                 
                 return (
                   <li key={item.id}>
-                    <Link href={item.path}>
+                    <Link href={item.path || '#'}>
                       <Button
                         variant="ghost"
                         className={cn(
@@ -416,7 +467,7 @@ export default function LeftSidebar({ isCollapsed, onToggle, isMobileOpen, onMob
                     
                     return (
                       <li key={item.id}>
-                        <Link href={item.path}>
+                        <Link href={item.path || '#'}>
                           <Button
                             variant="ghost"
                             className={cn(

@@ -1,233 +1,324 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useLocation, Link } from 'wouter';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { QrCode, Download, ArrowLeft, Users, Smartphone } from 'lucide-react';
-import { Link } from 'wouter';
+import { Badge } from '@/components/ui/badge';
+import { 
+  ArrowLeft, 
+  QrCode, 
+  Download,
+  Users,
+  RefreshCw,
+  Smartphone,
+  Wifi,
+  Eye
+} from 'lucide-react';
+import { useWineQuizStore } from '@/store/wineQuizStore';
+import { wineQuizApi } from '@/lib/wineQuizApi';
 
-interface Team {
-  id: number;
-  name: string;
-  qrData: string;
-  capacity: number;
-}
+// QR Code component (you might want to install qrcode.js or react-qr-code)
+const QRCodeDisplay = ({ value, size = 200 }: { value: string; size?: number }) => {
+  const [qrDataUrl, setQrDataUrl] = useState<string>('');
 
-export default function QrCodes() {
-  const [teams] = useState<Team[]>([
-    {
-      id: 1,
-      name: "Mesa 1 - Terroir",
-      qrData: "wine-quiz-team-1",
-      capacity: 4
-    },
-    {
-      id: 2,
-      name: "Mesa 2 - Harmonização",
-      qrData: "wine-quiz-team-2",
-      capacity: 4
-    },
-    {
-      id: 3,
-      name: "Mesa 3 - Envelhecimento",
-      qrData: "wine-quiz-team-3",
-      capacity: 4
-    },
-    {
-      id: 4,
-      name: "Mesa 4 - Degustação",
-      qrData: "wine-quiz-team-4",
-      capacity: 4
-    },
-    {
-      id: 5,
-      name: "Mesa 5 - Vinificação",
-      qrData: "wine-quiz-team-5",
-      capacity: 4
-    }
-  ]);
-
-  // Função simples para gerar QR Code SVG
-  const generateQRCode = (data: string, size: number = 200) => {
-    // Esta é uma representação visual simples - em produção usaria uma biblioteca como qrcode
-    const modules = 25; // Grid 25x25 para simplicidade
-    const moduleSize = size / modules;
-    
-    // Padrão simples baseado no hash do data
-    const hash = data.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    
-    const pattern = [];
-    for (let i = 0; i < modules * modules; i++) {
-      // Criar um padrão pseudo-aleatório baseado no hash e posição
-      pattern.push((hash * (i + 1)) % 3 === 0);
-    }
-
-    return (
-      <svg width={size} height={size} className="border border-gray-300 rounded">
-        <rect width={size} height={size} fill="white" />
-        {pattern.map((filled, index) => {
-          if (!filled) return null;
-          const x = (index % modules) * moduleSize;
-          const y = Math.floor(index / modules) * moduleSize;
-          return (
-            <rect
-              key={index}
-              x={x}
-              y={y}
-              width={moduleSize}
-              height={moduleSize}
-              fill="black"
-            />
-          );
-        })}
-        
-        {/* Corner squares (finder patterns) */}
-        <rect x="0" y="0" width={moduleSize * 7} height={moduleSize * 7} fill="none" stroke="black" strokeWidth="2" />
-        <rect x={moduleSize * 2} y={moduleSize * 2} width={moduleSize * 3} height={moduleSize * 3} fill="black" />
-        
-        <rect x={size - moduleSize * 7} y="0" width={moduleSize * 7} height={moduleSize * 7} fill="none" stroke="black" strokeWidth="2" />
-        <rect x={size - moduleSize * 5} y={moduleSize * 2} width={moduleSize * 3} height={moduleSize * 3} fill="black" />
-        
-        <rect x="0" y={size - moduleSize * 7} width={moduleSize * 7} height={moduleSize * 7} fill="none" stroke="black" strokeWidth="2" />
-        <rect x={moduleSize * 2} y={size - moduleSize * 5} width={moduleSize * 3} height={moduleSize * 3} fill="black" />
-      </svg>
-    );
-  };
-
-  const downloadQRCode = (teamName: string, qrData: string) => {
-    // Em produção, isso geraria um PNG real do QR code
-    alert(`Download do QR Code para ${teamName} - ${qrData}`);
-  };
-
-  const downloadAllQRCodes = () => {
-    alert('Download de todos os QR Codes em arquivo ZIP');
-  };
+  useEffect(() => {
+    // Simple QR code generation using an online API
+    // In production, you should use a proper QR code library
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(value)}`;
+    setQrDataUrl(qrUrl);
+  }, [value, size]);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="flex justify-center">
+      {qrDataUrl ? (
+        <img 
+          src={qrDataUrl} 
+          alt={`QR Code for ${value}`}
+          className="border rounded-lg shadow-sm"
+          width={size}
+          height={size}
+        />
+      ) : (
+        <div 
+          className="flex items-center justify-center bg-gray-100 border rounded-lg"
+          style={{ width: size, height: size }}
+        >
+          <QrCode className="h-16 w-16 text-gray-400" />
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default function QrCodes() {
+  const [, setLocation] = useLocation();
+  const [loading, setLoading] = useState(false);
+
+  const { 
+    teams,
+    sessions,
+    setTeams,
+    setSessions,
+    setLoading: setGlobalLoading,
+    setError
+  } = useWineQuizStore();
+
+  // Load teams and sessions
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  const loadData = async () => {
+    try {
+      setGlobalLoading(true);
+      
+      const [teamsData, sessionsData] = await Promise.all([
+        wineQuizApi.getTeams(),
+        wineQuizApi.getSessions()
+      ]);
+      
+      setTeams(teamsData);
+      setSessions(sessionsData);
+      
+    } catch (err) {
+      console.error('Error loading data:', err);
+      setError(err instanceof Error ? err.message : 'Erro ao carregar dados');
+    } finally {
+      setGlobalLoading(false);
+    }
+  };
+
+  const downloadQRCode = (teamName: string, teamId: number) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const size = 400;
+    canvas.width = size;
+    canvas.height = size + 100; // Extra space for text
+
+    // Create QR code URL
+    const joinUrl = `${window.location.origin}/vinhonarios/join?team=${teamId}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(joinUrl)}`;
+
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // White background
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Draw QR code
+      ctx.drawImage(img, 0, 0, size, size);
+
+      // Add team name
+      ctx.fillStyle = '#000000';
+      ctx.font = 'bold 24px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(teamName, size / 2, size + 40);
+
+      // Add URL
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#666666';
+      ctx.fillText(joinUrl, size / 2, size + 70);
+
+      // Download
+      const link = document.createElement('a');
+      link.download = `qrcode-${teamName.toLowerCase().replace(/\s+/g, '-')}.png`;
+      link.href = canvas.toDataURL();
+      link.click();
+    };
+    img.src = qrUrl;
+  };
+
+  const activeSession = sessions.find(s => s.status === 'active');
+  const joinBaseUrl = `${window.location.origin}/vinhonarios/join`;
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/vinhonarios/vinhos-visoes">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar
-                </Button>
-              </Link>
-              <div className="border-l border-gray-300 h-6"></div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                  <QrCode className="w-8 h-8 text-purple-600 mr-3" />
-                  QR Codes das Equipes
-                </h1>
-                <p className="text-gray-600 mt-1">Códigos para acesso rápido das equipes ao quiz</p>
-              </div>
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <Link href="/vinhonarios/vinhos-visoes">
+              <Button variant="ghost" size="sm" className="mr-4">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">QR Codes das Equipes</h1>
+              <p className="text-gray-600">Códigos para acesso rápido das mesas</p>
             </div>
-            <Button onClick={downloadAllQRCodes} className="bg-purple-600 hover:bg-purple-700">
-              <Download className="w-4 h-4 mr-2" />
-              Baixar Todos
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <Button 
+              onClick={loadData} 
+              disabled={loading}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Atualizar
             </Button>
+            
+            {activeSession && (
+              <Badge variant="default" className="bg-green-600">
+                <Wifi className="h-3 w-3 mr-1" />
+                Sessão #{activeSession.id} Ativa
+              </Badge>
+            )}
           </div>
         </div>
-      </header>
 
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Instructions */}
-        <Card className="mb-8">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-start space-x-3">
+            <Smartphone className="h-5 w-5 text-blue-600 mt-0.5" />
+            <div>
+              <h3 className="font-medium text-blue-900 mb-1">Como usar os QR Codes</h3>
+              <div className="text-sm text-blue-700 space-y-1">
+                <p>• Cada mesa possui um QR Code único para acesso rápido</p>
+                <p>• Participantes podem escanear com o celular para se juntar à equipe</p>
+                <p>• Os códigos levam direto para a página de cadastro da mesa</p>
+                <p>• Máximo de {teams[0]?.maxMembers || 4} participantes por mesa</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* QR Codes Grid */}
+      {teams.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {teams.map((team) => {
+            const joinUrl = `${joinBaseUrl}?team=${team.id}`;
+            
+            return (
+              <Card key={team.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader className="text-center">
+                  <CardTitle className="flex items-center justify-center">
+                    <div 
+                      className="w-4 h-4 rounded-full mr-2"
+                      style={{ backgroundColor: team.color }}
+                    />
+                    {team.name}
+                    {team.icon && (
+                      <span className="ml-2 text-lg">{team.icon}</span>
+                    )}
+                  </CardTitle>
+                  <Badge variant="outline" className="mx-auto w-fit">
+                    Mesa #{team.id}
+                  </Badge>
+                </CardHeader>
+                
+                <CardContent className="space-y-4">
+                  {/* QR Code Display */}
+                  <QRCodeDisplay value={joinUrl} size={200} />
+                  
+                  {/* Team Info */}
+                  <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center text-sm text-gray-600">
+                      <Users className="h-4 w-4 mr-1" />
+                      Máximo {team.maxMembers || 4} participantes
+                    </div>
+                    
+                    <div className="bg-gray-50 p-3 rounded-lg">
+                      <p className="text-xs font-mono text-gray-700 break-all">
+                        {joinUrl}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      onClick={() => downloadQRCode(team.name, team.id)}
+                      className="flex-1"
+                      variant="outline"
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                    
+                    <Button 
+                      onClick={() => window.open(joinUrl, '_blank')}
+                      className="flex-1"
+                      variant="outline"
+                    >
+                      <Eye className="h-4 w-4 mr-2" />
+                      Visualizar
+                    </Button>
+                  </div>
+
+                  {/* QR Code Data */}
+                  {team.qrCode && (
+                    <div className="text-xs text-gray-500 text-center">
+                      ID: {team.qrCode}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="text-center py-12">
+            <QrCode className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Nenhuma Equipe Encontrada
+            </h3>
+            <p className="text-gray-500 mb-4">
+              Configure as equipes no sistema para gerar os QR Codes
+            </p>
+            <Link href="/vinhonarios/admin">
+              <Button>
+                <Users className="h-4 w-4 mr-2" />
+                Ir para Admin
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Usage Stats */}
+      {teams.length > 0 && (
+        <Card className="mt-8">
           <CardHeader>
             <CardTitle className="flex items-center">
-              <Smartphone className="w-5 h-5 mr-2 text-blue-600" />
-              Como Usar os QR Codes
+              <Users className="h-5 w-5 mr-2" />
+              Estatísticas das Mesas
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="text-center">
-                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <QrCode className="w-6 h-6 text-blue-600" />
-                </div>
-                <h3 className="font-medium text-gray-900 mb-2">1. Escaneie o Código</h3>
-                <p className="text-sm text-gray-600">
-                  Cada mesa/equipe deve escanear seu QR Code específico com o smartphone
-                </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+              <div>
+                <div className="text-2xl font-bold text-gray-900">{teams.length}</div>
+                <div className="text-sm text-gray-500">Mesas Disponíveis</div>
               </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Users className="w-6 h-6 text-purple-600" />
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {teams.reduce((sum, team) => sum + (team.maxMembers || 4), 0)}
                 </div>
-                <h3 className="font-medium text-gray-900 mb-2">2. Acesso Direto</h3>
-                <p className="text-sm text-gray-600">
-                  O código leva diretamente à interface do quiz já configurada para a equipe
-                </p>
+                <div className="text-sm text-gray-500">Capacidade Total</div>
               </div>
-              <div className="text-center">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                  <Smartphone className="w-6 h-6 text-green-600" />
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {sessions.filter(s => s.status === 'active').length}
                 </div>
-                <h3 className="font-medium text-gray-900 mb-2">3. Participe</h3>
-                <p className="text-sm text-gray-600">
-                  Aguarde o sommelier iniciar a sessão e responda às perguntas em tempo real
-                </p>
+                <div className="text-sm text-gray-500">Sessões Ativas</div>
+              </div>
+              <div>
+                <div className="text-2xl font-bold text-gray-900">
+                  {sessions.length}
+                </div>
+                <div className="text-sm text-gray-500">Total de Sessões</div>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* QR Codes Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {teams.map((team) => (
-            <Card key={team.id} className="overflow-hidden">
-              <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-purple-600 text-white">
-                <CardTitle className="text-lg">{team.name}</CardTitle>
-                <p className="text-purple-100 text-sm">
-                  Capacidade: {team.capacity} participantes
-                </p>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center space-y-4">
-                  {/* QR Code */}
-                  <div className="bg-white p-4 rounded-lg shadow-sm">
-                    {generateQRCode(team.qrData, 180)}
-                  </div>
-                  
-                  {/* Team Info */}
-                  <div className="text-center">
-                    <p className="text-sm text-gray-600 mb-1">ID da Equipe</p>
-                    <p className="font-mono text-xs bg-gray-100 px-2 py-1 rounded">
-                      {team.qrData}
-                    </p>
-                  </div>
-                  
-                  {/* Download Button */}
-                  <Button 
-                    onClick={() => downloadQRCode(team.name, team.qrData)}
-                    className="w-full bg-purple-600 hover:bg-purple-700"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Baixar QR Code
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Footer Info */}
-        <Card className="mt-8">
-          <CardContent className="p-6">
-            <div className="text-center text-gray-600">
-              <p className="mb-2">
-                <strong>URL Base:</strong> {window.location.origin}/vinhonarios/quiz/team/
-              </p>
-              <p className="text-sm">
-                Os QR Codes direcionam para esta URL + ID da equipe. 
-                Certifique-se de que o sistema esteja acessível na rede local.
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+      )}
     </div>
   );
 }

@@ -26,6 +26,12 @@ export const useTenantStore = create<TenantState>((set, get) => ({
     try {
       const tenants = await TenantService.getTenants();
       set({ tenants, isLoading: false });
+      
+      // Auto-definir tenant para desenvolvimento
+      if (import.meta.env.DEV && tenants.length > 0) {
+        const defaultTenant = tenants.find(t => t.id === 'carvion-tenant-1') || tenants[0];
+        set({ currentTenant: defaultTenant });
+      }
     } catch (error) {
       console.error('Failed to load tenants:', error);
       set({ isLoading: false });

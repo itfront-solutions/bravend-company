@@ -13,7 +13,7 @@ export default function UpcomingEvents() {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['/api/tenants', user?.tenantId, 'events', 'upcoming'],
     enabled: !!user?.tenantId,
-  });
+  }) as { data: any[], isLoading: boolean };
 
   if (isLoading) {
     return (
@@ -92,7 +92,7 @@ export default function UpcomingEvents() {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {events.length > 0 ? (
+        {Array.isArray(events) && events.length > 0 ? (
           events.map((event: any) => (
             <div 
               key={event.id}

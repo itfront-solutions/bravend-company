@@ -8,11 +8,11 @@ export default function LearningProgress() {
   const { data: userProgress = [] } = useQuery({
     queryKey: ['/api/users', user?.id, 'progress'],
     enabled: !!user?.id,
-  });
+  }) as { data: any[] };
 
   // Calculate overall progress
-  const totalModules = userProgress.reduce((sum: number, p: any) => sum + (p.completedModules || 0), 0);
-  const averageProgress = userProgress.length > 0 
+  const totalModules = Array.isArray(userProgress) ? userProgress.reduce((sum: number, p: any) => sum + (p.completedModules || 0), 0) : 0;
+  const averageProgress = Array.isArray(userProgress) && userProgress.length > 0 
     ? userProgress.reduce((sum: number, p: any) => sum + (p.progressPercentage || 0), 0) / userProgress.length 
     : 0;
 
@@ -112,7 +112,7 @@ export default function LearningProgress() {
           </div>
           <div className="text-center">
             <p className="text-2xl font-bold text-secondary">
-              {userProgress.length}
+              {Array.isArray(userProgress) ? userProgress.length : 0}
             </p>
             <p className="text-xs text-muted-foreground">
               Trilhas iniciadas

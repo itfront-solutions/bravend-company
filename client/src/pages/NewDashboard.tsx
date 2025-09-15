@@ -17,8 +17,33 @@ import {
   Bell,
   Star,
   Target,
-  Zap
+  Zap,
+  BarChart3,
+  PieChart
 } from 'lucide-react';
+import { 
+  AreaChart,
+  Area,
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart as RechartsPieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer
+} from 'recharts';
+import { 
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+  type ChartConfig
+} from "@/components/ui/chart";
 import { Link } from 'wouter';
 
 export default function NewDashboard() {
@@ -33,7 +58,7 @@ export default function NewDashboard() {
     );
   }
 
-  // Dados mock para demonstração
+  // Dados para demonstração - agora mais realistas
   const stats = [
     { 
       title: 'Trilhas Ativas', 
@@ -48,26 +73,57 @@ export default function NewDashboard() {
       value: '78%', 
       change: '+15%', 
       icon: TrendingUp,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100'
+      color: 'text-blue-700',
+      bgColor: 'bg-blue-50'
     },
     { 
       title: 'Usuários Ativos', 
       value: '2,847', 
       change: '+12%', 
       icon: Users,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100'
+      color: 'text-blue-800',
+      bgColor: 'bg-blue-100'
     },
     { 
       title: 'Conquistas', 
       value: '156', 
       change: '+8%', 
       icon: Trophy,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100'
+      color: 'text-blue-600',
+      bgColor: 'bg-blue-50'
     }
   ];
+
+  // Dados para gráficos
+  const monthlyData = [
+    { month: 'Jan', usuarios: 1200, trilhas: 8, conquistas: 89 },
+    { month: 'Fev', usuarios: 1800, trilhas: 10, conquistas: 112 },
+    { month: 'Mar', usuarios: 2100, trilhas: 12, conquistas: 134 },
+    { month: 'Abr', usuarios: 2400, trilhas: 15, conquistas: 156 },
+    { month: 'Mai', usuarios: 2700, trilhas: 18, conquistas: 178 },
+    { month: 'Jun', usuarios: 2847, trilhas: 20, conquistas: 201 }
+  ];
+
+  const productUsageData = [
+    { name: 'Business Quest', value: 45, color: 'hsl(221.2, 83.2%, 53.3%)' },
+    { name: 'Conselho Digital', value: 35, color: 'hsl(212, 95%, 68%)' },
+    { name: 'Vinhonários', value: 20, color: 'hsl(216, 87%, 45%)' }
+  ];
+
+  const chartConfig: ChartConfig = {
+    usuarios: {
+      label: "Usuários",
+      color: "hsl(221.2, 83.2%, 53.3%)",
+    },
+    trilhas: {
+      label: "Trilhas",
+      color: "hsl(212, 95%, 68%)",
+    },
+    conquistas: {
+      label: "Conquistas", 
+      color: "hsl(216, 87%, 45%)",
+    },
+  };
 
   const orquestraProducts = [
     {
@@ -81,7 +137,7 @@ export default function NewDashboard() {
     },
     {
       title: 'Conselho Digital',
-      description: 'Escola de Conselheiros CVO',
+      description: 'Jornada CVO',
       icon: Brain,
       path: '/conselho-digital',
       color: 'from-purple-500 to-pink-600',
@@ -149,6 +205,94 @@ export default function NewDashboard() {
               </Card>
             );
           })}
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Performance Overview Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="w-5 h-5 mr-2" />
+                Evolução Mensal
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <AreaChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="month" 
+                    tickLine={false}
+                    axisLine={false}
+                    className="text-sm"
+                  />
+                  <YAxis 
+                    tickLine={false}
+                    axisLine={false}
+                    className="text-sm"
+                  />
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <defs>
+                    <linearGradient id="colorUsuarios" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(221.2, 83.2%, 53.3%)" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="hsl(221.2, 83.2%, 53.3%)" stopOpacity={0.1}/>
+                    </linearGradient>
+                  </defs>
+                  <Area 
+                    type="monotone" 
+                    dataKey="usuarios" 
+                    stroke="hsl(221.2, 83.2%, 53.3%)" 
+                    fillOpacity={1} 
+                    fill="url(#colorUsuarios)" 
+                  />
+                </AreaChart>
+              </ChartContainer>
+            </CardContent>
+          </Card>
+
+          {/* Product Usage Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <PieChart className="w-5 h-5 mr-2" />
+                Uso dos Produtos
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ChartContainer config={chartConfig} className="h-[300px]">
+                <RechartsPieChart>
+                  <ChartTooltip content={<ChartTooltipContent />} />
+                  <Pie
+                    data={productUsageData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={120}
+                    paddingAngle={5}
+                    dataKey="value"
+                  >
+                    {productUsageData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                </RechartsPieChart>
+              </ChartContainer>
+              <div className="flex flex-wrap justify-center gap-4 mt-4">
+                {productUsageData.map((entry, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-sm" 
+                      style={{ backgroundColor: entry.color }}
+                    />
+                    <span className="text-sm text-muted-foreground">
+                      {entry.name} ({entry.value}%)
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

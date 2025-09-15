@@ -1,288 +1,359 @@
 import { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { useLocation, Link } from 'wouter';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Trophy, Medal, Award, ArrowLeft, Crown, Star } from 'lucide-react';
-import { Link } from 'wouter';
-
-interface TeamScore {
-  id: number;
-  name: string;
-  totalScore: number;
-  lastQuestionScore: number;
-  participantCount: number;
-  avgResponseTime: number;
-}
-
-interface Question {
-  id: number;
-  text: string;
-  isActive: boolean;
-  timeRemaining?: number;
-}
+import { Badge } from '@/components/ui/badge';
+import { 
+  Trophy, 
+  Medal, 
+  Award, 
+  ArrowLeft, 
+  Wifi,
+  WifiOff,
+  RefreshCw,
+  Users,
+  Clock,
+  Eye
+} from 'lucide-react';
+import { useWineQuizStore } from '@/store/wineQuizStore';
+import { useWineQuizWebSocket } from '@/hooks/useWineQuizWebSocket';
+import { wineQuizApi } from '@/lib/wineQuizApi';
 
 export default function Scoreboard() {
-  const [teams, setTeams] = useState<TeamScore[]>([
-    {
-      id: 1,
-      name: "Mesa 1 - Terroir",
-      totalScore: 185,
-      lastQuestionScore: 15,
-      participantCount: 4,
-      avgResponseTime: 8.5
-    },
-    {
-      id: 2,
-      name: "Mesa 2 - Harmonização",
-      totalScore: 172,
-      lastQuestionScore: 12,
-      participantCount: 3,
-      avgResponseTime: 12.3
-    },
-    {
-      id: 3,
-      name: "Mesa 3 - Envelhecimento",
-      totalScore: 168,
-      lastQuestionScore: 18,
-      participantCount: 4,
-      avgResponseTime: 7.8
-    },
-    {
-      id: 4,
-      name: "Mesa 4 - Degustação",
-      totalScore: 156,
-      lastQuestionScore: 8,
-      participantCount: 2,
-      avgResponseTime: 15.2
-    },
-    {
-      id: 5,
-      name: "Mesa 5 - Vinificação",
-      totalScore: 143,
-      lastQuestionScore: 10,
-      participantCount: 3,
-      avgResponseTime: 11.7
-    }
-  ]);
+  const [, setLocation] = useLocation();
+  const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const [currentQuestion, setCurrentQuestion] = useState<Question>({
-    id: 1,
-    text: "Qual região é conhecida pelos vinhos Barolo e Barbaresco?",
-    isActive: false,
-    timeRemaining: 0
-  });
+  const { 
+    sessions,
+    leaderboard,
+    isConnected,
+    connectedUsers,
+    loading,
+    error,
+    setSessions,
+    setLeaderboard,
+    setLoading,
+    setError
+  } = useWineQuizStore();
 
-  const [sessionActive, setSessionActive] = useState(false);
+  const { connect, disconnect, sendMessage, lastMessage, isConnected: wsConnected } = useWineQuizWebSocket();
 
-  // Simular atualizações em tempo real
+  // Load sessions on mount
   useEffect(() => {
-    const interval = setInterval(() => {
-      // Simular pequenas mudanças na pontuação
-      setTeams(prevTeams => 
-        prevTeams.map(team => ({
-          ...team,
-          totalScore: Math.max(0, team.totalScore + (Math.random() - 0.5) * 2)
-        })).sort((a, b) => b.totalScore - a.totalScore)
-      );
-
-      // Simular mudanças na pergunta ativa
-      if (Math.random() > 0.95) {
-        setCurrentQuestion(prev => ({
-          ...prev,
-          isActive: !prev.isActive,
-          timeRemaining: prev.isActive ? 0 : 30
-        }));
+    const loadSessions = async () => {
+      try {
+        setLoading(true);
+        const data = await wineQuizApi.getSessions();
+        setSessions(data);
+        
+        // Auto-select first active session
+        const activeSession = data.find(s => s.status === 'active');
+        if (activeSession) {
+          setSelectedSessionId(activeSession.id);
+        }
+      } catch (err) {
+        console.error('Error loading sessions:', err);
+        setError(err instanceof Error ? err.message : 'Erro ao carregar sessões');
+      } finally {
+        setLoading(false);
       }
+    };
 
-      // Decrementar tempo se pergunta ativa
-      setCurrentQuestion(prev => 
-        prev.isActive && prev.timeRemaining! > 0 
-          ? { ...prev, timeRemaining: prev.timeRemaining! - 1 }
-          : prev
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
+    loadSessions();
   }, []);
 
-  const getPositionIcon = (position: number) => {
-    switch (position) {
-      case 1:
-        return <Crown className="w-6 h-6 text-yellow-500" />;
-      case 2:
-        return <Medal className="w-6 h-6 text-gray-400" />;
-      case 3:
-        return <Award className="w-6 h-6 text-amber-600" />;
-      default:
-        return <Star className="w-6 h-6 text-gray-300" />;
+  // Load leaderboard when session is selected
+  useEffect(() => {
+    if (selectedSessionId) {
+      loadLeaderboard();
+    }
+  }, [selectedSessionId]);
+
+  // WebSocket message handling - FIXED: No auto-refresh that causes score inflation
+  useEffect(() => {
+    if (lastMessage) {
+      switch (lastMessage.type) {
+        case 'live_scores':
+          if (lastMessage.data.scores) {
+            setLeaderboard(lastMessage.data.scores);
+          }
+          break;
+          
+        case 'session_started':
+        case 'session_ended':
+          // Reload sessions when they change
+          wineQuizApi.getSessions().then(setSessions).catch(console.error);
+          break;
+
+        // REMOVED: case 'answer_received' auto-refresh that was causing score inflation
+      }
+    }
+  }, [lastMessage, selectedSessionId]);
+
+  const loadLeaderboard = async () => {
+    if (!selectedSessionId) return;
+    
+    try {
+      const data = await wineQuizApi.getSessionLeaderboard(selectedSessionId);
+      setLeaderboard(data);
+    } catch (err) {
+      console.error('Error loading leaderboard:', err);
     }
   };
 
-  const getPositionColor = (position: number) => {
-    switch (position) {
-      case 1:
-        return 'from-yellow-400 to-yellow-600';
-      case 2:
-        return 'from-gray-300 to-gray-500';
-      case 3:
-        return 'from-amber-400 to-amber-600';
-      default:
-        return 'from-purple-400 to-purple-600';
+  const refreshLeaderboard = async () => {
+    if (!selectedSessionId) return;
+    
+    setRefreshing(true);
+    try {
+      await loadLeaderboard();
+      
+      // Also request live scores via WebSocket if connected
+      if (wsConnected) {
+        sendMessage({
+          type: 'get_live_scores',
+          sessionId: selectedSessionId
+        });
+      }
+    } finally {
+      setRefreshing(false);
     }
   };
+
+  const getRankIcon = (position: number) => {
+    switch (position) {
+      case 1:
+        return <Trophy className="h-6 w-6 text-yellow-500" />;
+      case 2:
+        return <Medal className="h-6 w-6 text-gray-400" />;
+      case 3:
+        return <Award className="h-6 w-6 text-amber-600" />;
+      default:
+        return (
+          <div className="w-6 h-6 rounded-full bg-gray-300 flex items-center justify-center text-xs font-bold text-white">
+            {position}
+          </div>
+        );
+    }
+  };
+
+  const selectedSession = sessions.find(s => s.id === selectedSessionId);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-purple-800 to-indigo-900">
+    <div className="min-h-screen bg-gray-50 p-6">
       {/* Header */}
-      <header className="bg-black/20 backdrop-blur-sm border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Link href="/vinhonarios/vinhos-visoes">
-                <Button variant="ghost" size="sm" className="text-white hover:bg-white/10">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Voltar
-                </Button>
-              </Link>
-              <div className="border-l border-white/30 h-6"></div>
-              <div>
-                <h1 className="text-2xl font-bold text-white flex items-center">
-                  <Trophy className="w-8 h-8 text-yellow-400 mr-3" />
-                  Placar Oficial - Vinhos & Visões
-                </h1>
-                <p className="text-purple-200 mt-1">Competição de Conhecimentos sobre Vinhos</p>
-              </div>
-            </div>
-            <div className={`px-4 py-2 rounded-full text-sm font-medium ${
-              sessionActive 
-                ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
-                : 'bg-red-500/20 text-red-300 border border-red-500/30'
-            }`}>
-              {sessionActive ? '🔴 AO VIVO' : '⏸️ PAUSADO'}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center">
+            <Link href="/vinhonarios/vinhos-visoes">
+              <Button variant="ghost" size="sm" className="mr-4">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+            </Link>
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Scoreboard</h1>
+              <p className="text-gray-600">Ranking em tempo real</p>
             </div>
           </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2">
+              {wsConnected ? (
+                <Wifi className="h-4 w-4 text-green-600" />
+              ) : (
+                <WifiOff className="h-4 w-4 text-red-600" />
+              )}
+              <span className="text-sm text-gray-600">
+                {wsConnected ? `${connectedUsers} conectados` : 'Desconectado'}
+              </span>
+            </div>
+            
+            <Button 
+              onClick={refreshLeaderboard} 
+              disabled={refreshing || !selectedSessionId}
+              size="sm"
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              Atualizar
+            </Button>
+          </div>
         </div>
-      </header>
+      </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Current Question */}
-        {currentQuestion.isActive && (
-          <Card className="mb-8 bg-white/10 backdrop-blur-sm border-white/20">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <div className="flex items-center justify-center mb-4">
-                  <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mr-4">
-                    <span className="text-2xl font-bold text-white">
-                      {currentQuestion.timeRemaining}
-                    </span>
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-bold text-white mb-2">Pergunta Ativa</h2>
-                    <p className="text-gray-200">{currentQuestion.text}</p>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        {/* Session Selection */}
+        <div className="lg:col-span-1">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <Clock className="h-5 w-5 mr-2" />
+                Sessões
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading && (
+                <div className="animate-pulse space-y-2">
+                  <div className="h-12 bg-gray-200 rounded"></div>
+                  <div className="h-12 bg-gray-200 rounded"></div>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div 
-                    className="bg-orange-500 h-2 rounded-full transition-all duration-1000"
-                    style={{ width: `${(currentQuestion.timeRemaining! / 30) * 100}%` }}
-                  ></div>
+              )}
+              
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
+                  <p className="text-red-700 text-sm">{error}</p>
                 </div>
+              )}
+
+              <div className="space-y-2">
+                {sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                      selectedSessionId === session.id
+                        ? 'border-purple-500 bg-purple-50'
+                        : 'border-gray-200 hover:border-gray-300'
+                    }`}
+                    onClick={() => setSelectedSessionId(session.id)}
+                  >
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="font-medium">Sessão #{session.id}</h4>
+                      <Badge 
+                        variant={
+                          session.status === 'active' ? 'default' : 
+                          session.status === 'finished' ? 'secondary' : 
+                          'outline'
+                        }
+                        className="text-xs"
+                      >
+                        {session.status === 'active' ? 'Ativa' : 
+                         session.status === 'finished' ? 'Finalizada' : 
+                         'Pendente'}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {new Date(session.startTime).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                ))}
+                
+                {sessions.length === 0 && !loading && (
+                  <div className="text-center py-6 text-gray-500">
+                    <Clock className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">Nenhuma sessão encontrada</p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
-        )}
-
-        {/* Leaderboard */}
-        <div className="space-y-4">
-          {/* Top 3 - Destacado */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            {teams.slice(0, 3).map((team, index) => (
-              <Card key={team.id} className={`bg-gradient-to-br ${getPositionColor(index + 1)} text-white shadow-xl transform hover:scale-105 transition-transform`}>
-                <CardContent className="p-6 text-center">
-                  <div className="flex justify-center mb-4">
-                    {getPositionIcon(index + 1)}
-                  </div>
-                  <h3 className="text-xl font-bold mb-2">{team.name}</h3>
-                  <div className="text-3xl font-bold mb-2">
-                    {Math.round(team.totalScore)}
-                  </div>
-                  <div className="text-sm opacity-90">
-                    {team.participantCount} participantes
-                  </div>
-                  <div className="text-sm opacity-75 mt-1">
-                    {index + 1}° Lugar
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Resto das equipes */}
-          {teams.slice(3).map((team, index) => (
-            <Card key={team.id} className="bg-white/10 backdrop-blur-sm border-white/20 text-white">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-4">
-                    <div className="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center">
-                      <span className="text-lg font-bold">{index + 4}</span>
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold">{team.name}</h3>
-                      <div className="text-sm text-purple-200">
-                        {team.participantCount} participantes • 
-                        Tempo médio: {team.avgResponseTime}s
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold text-purple-200">
-                      {Math.round(team.totalScore)}
-                    </div>
-                    <div className="text-sm text-purple-300">
-                      Última: +{team.lastQuestionScore}
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
         </div>
 
-        {/* Statistics Footer */}
-        <Card className="mt-8 bg-black/20 backdrop-blur-sm border-white/10">
-          <CardContent className="p-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
-              <div>
-                <div className="text-2xl font-bold text-white">{teams.length}</div>
-                <div className="text-sm text-purple-200">Equipes Participando</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">
-                  {teams.reduce((sum, team) => sum + team.participantCount, 0)}
+        {/* Leaderboard */}
+        <div className="lg:col-span-3">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <Trophy className="h-5 w-5 mr-2 text-yellow-600" />
+                  Ranking
+                  {selectedSession && (
+                    <Badge variant="outline" className="ml-2">
+                      Sessão #{selectedSession.id}
+                    </Badge>
+                  )}
                 </div>
-                <div className="text-sm text-purple-200">Total de Participantes</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">
-                  {Math.round(teams.reduce((sum, team) => sum + team.avgResponseTime, 0) / teams.length)}s
+                {leaderboard.length > 0 && (
+                  <div className="flex items-center text-sm text-gray-500">
+                    <Users className="h-4 w-4 mr-1" />
+                    {leaderboard.length} equipes
+                  </div>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {!selectedSessionId ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                  <h3 className="text-lg font-medium mb-2">Selecione uma Sessão</h3>
+                  <p className="text-sm">
+                    Escolha uma sessão à esquerda para ver o ranking
+                  </p>
                 </div>
-                <div className="text-sm text-purple-200">Tempo Médio de Resposta</div>
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-white">
-                  {Math.round(teams[0]?.totalScore || 0)}
-                </div>
-                <div className="text-sm text-purple-200">Maior Pontuação</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              ) : leaderboard.length > 0 ? (
+                <div className="space-y-3">
+                  {leaderboard.map((entry, index) => (
+                    <div 
+                      key={entry.teamId}
+                      className={`flex items-center justify-between p-4 rounded-lg transition-all ${
+                        index === 0 ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-200' :
+                        index === 1 ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-2 border-gray-200' :
+                        index === 2 ? 'bg-gradient-to-r from-amber-50 to-orange-50 border-2 border-amber-200' :
+                        'bg-gray-50 border border-gray-200'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-4">
+                        {getRankIcon(index + 1)}
+                        
+                        <div className="flex items-center space-x-3">
+                          <div 
+                            className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                            style={{ backgroundColor: entry.color }}
+                          />
+                          <div>
+                            <h4 className={`font-semibold ${
+                              index === 0 ? 'text-yellow-800' :
+                              index === 1 ? 'text-gray-800' :
+                              index === 2 ? 'text-amber-800' :
+                              'text-gray-700'
+                            }`}>
+                              {entry.teamName}
+                            </h4>
+                            {entry.icon && (
+                              <span className="text-lg">{entry.icon}</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
 
-        {/* Real-time indicator */}
-        <div className="text-center mt-6">
-          <div className="inline-flex items-center px-4 py-2 bg-green-500/20 text-green-300 rounded-full text-sm border border-green-500/30">
-            <div className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></div>
-            Atualizando em tempo real
-          </div>
+                      <div className="flex items-center space-x-4">
+                        <div className="text-right">
+                          <div className={`text-2xl font-bold ${
+                            index === 0 ? 'text-yellow-700' :
+                            index === 1 ? 'text-gray-700' :
+                            index === 2 ? 'text-amber-700' :
+                            'text-gray-600'
+                          }`}>
+                            {entry.totalScore.toFixed(1)}
+                          </div>
+                          <div className="text-xs text-gray-500">pontos</div>
+                        </div>
+                        
+                        <Link href="/vinhonarios/question">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            className="flex items-center gap-2"
+                          >
+                            <Eye className="h-4 w-4" />
+                            Visualizar
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-500">
+                  <Trophy className="h-12 w-12 mx-auto mb-4 opacity-30" />
+                  <h3 className="text-lg font-medium mb-2">Aguardando Resultados</h3>
+                  <p className="text-sm">
+                    O ranking aparecerá quando as equipes começarem a responder
+                  </p>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-O ConselhoDigital foi integrado com sucesso ao sistema Carvion_Master como um submenu. Esta integração permite aos usuários acessar a plataforma "Escola de Conselheiros CVO" diretamente da plataforma principal, oferecendo funcionalidades completas para desenvolvimento e gestão de competências de conselheiros corporativos.
+O ConselhoDigital foi integrado com sucesso ao sistema Carvion_Master como um submenu. Esta integração permite aos usuários acessar a plataforma "Jornada CVO" diretamente da plataforma principal, oferecendo funcionalidades completas para desenvolvimento e gestão de competências de conselheiros corporativos.
 
 ## Arquivos Modificados
 
@@ -48,7 +48,7 @@ client/src/components/conselho-digital/
 ## Funcionalidades Integradas
 
 ### 1. **Landing Page** (`/conselho-digital`)
-- Apresenta a "Escola de Conselheiros CVO"
+- Apresenta a "Jornada CVO"
 - Destaca 6 funcionalidades principais:
   - Dashboard Completo
   - Trilha de Aprendizagem

@@ -150,11 +150,11 @@ export const communities = pgTable("communities", {
 // Community Posts table
 export const communityPosts = pgTable("community_posts", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  communityId: varchar("community_id").references(() => communities.id).notNull(),
+  communityId: varchar("community_id").references((): any => communities.id).notNull(),
   authorId: varchar("author_id").references(() => users.id).notNull(),
   title: text("title"),
   content: text("content").notNull(),
-  parentPostId: varchar("parent_post_id").references(() => communityPosts.id),
+  parentPostId: varchar("parent_post_id").references((): any => communityPosts.id),
   likesCount: integer("likes_count").default(0),
   repliesCount: integer("replies_count").default(0),
   createdAt: timestamp("created_at").defaultNow(),

@@ -9,18 +9,18 @@ export default function StatsOverview() {
   const { data: userProgress = [] } = useQuery({
     queryKey: ['/api/users', user?.id, 'progress'],
     enabled: !!user?.id,
-  });
+  }) as { data: any[] };
 
   const { data: leaderboard = [] } = useQuery({
     queryKey: ['/api/tenants', user?.tenantId, 'leaderboard'],
     enabled: !!user?.tenantId,
-  });
+  }) as { data: any[] };
 
   // Calculate stats from progress data
-  const activeTrails = userProgress.filter((p: any) => p.progressPercentage > 0 && p.progressPercentage < 100).length;
-  const completedModules = userProgress.reduce((sum: number, p: any) => sum + (p.completedModules || 0), 0);
-  const totalTimeSpent = userProgress.reduce((sum: number, p: any) => sum + (p.totalTimeSpent || 0), 0);
-  const userRanking = leaderboard.findIndex((u: any) => u.id === user?.id) + 1;
+  const activeTrails = Array.isArray(userProgress) ? userProgress.filter((p: any) => p.progressPercentage > 0 && p.progressPercentage < 100).length : 0;
+  const completedModules = Array.isArray(userProgress) ? userProgress.reduce((sum: number, p: any) => sum + (p.completedModules || 0), 0) : 0;
+  const totalTimeSpent = Array.isArray(userProgress) ? userProgress.reduce((sum: number, p: any) => sum + (p.totalTimeSpent || 0), 0) : 0;
+  const userRanking = Array.isArray(leaderboard) ? leaderboard.findIndex((u: any) => u.id === user?.id) + 1 : 0;
 
   const stats = [
     {

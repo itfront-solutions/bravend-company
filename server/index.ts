@@ -1,8 +1,12 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import express, { type Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { WineQuizWebSocketManager } from "./wine-quiz-websocket";
+import { wineQuizStorage } from "./wine-quiz-db-storage";
 
 const app = express();
 app.use(express.json());
@@ -56,6 +60,9 @@ app.use((req, res, next) => {
 
 (async () => {
   const server = await registerRoutes(app);
+
+  // Initialize Wine Quiz Database
+  await wineQuizStorage.initializeDatabase();
 
   // Initialize Wine Quiz WebSocket Manager
   const wineQuizWS = new WineQuizWebSocketManager(server);

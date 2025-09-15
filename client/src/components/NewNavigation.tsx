@@ -81,7 +81,7 @@ export default function NewNavigation() {
       color: 'text-purple-600',
       items: [
         { path: '/businessquest', label: 'Business Quest', icon: Gamepad2, description: 'Simulador de negócios' },
-        { path: '/conselho-digital', label: 'Conselho Digital', icon: Brain, description: 'Escola de Conselheiros CVO' }
+        { path: '/conselho-digital', label: 'Conselho Digital', icon: Brain, description: 'Jornada CVO' }
       ]
     },
     {

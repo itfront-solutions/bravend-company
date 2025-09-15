@@ -8,7 +8,7 @@ export interface DomainConfig {
 }
 
 // Mock data - em produção virá do banco/API
-const DOMAIN_MAPPINGS: Record<string, string> = {
+const DOMAIN_MAPPINGS: Record<string, string | null> = {
   'acme.orquestra.com': '1',
   'learn.acme.com': '1',
   'techstart.orquestra.com': '2',
@@ -18,7 +18,7 @@ const DOMAIN_MAPPINGS: Record<string, string> = {
   'orquestra.com': null,
   'admin.orquestra.com': null,
   'localhost': null, // Para desenvolvimento
-  '127.0.0.1': null,
+  '127.0.0.1': null
 };
 
 /**

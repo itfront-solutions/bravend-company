@@ -31,9 +31,21 @@ import ConselhoDigitalPortfolio from "@/pages/conselho-digital/Portfolio";
 // Vinhonarios Pages
 import VinhosVisoes from "@/pages/vinhonarios/VinhosVisoes";
 import WineQuizAdminDashboard from "@/pages/vinhonarios/AdminDashboard";
+import SommelierPanel from "@/pages/vinhonarios/SommelierPanel";
+import TeamRegistration from "@/pages/vinhonarios/TeamRegistration";
+import QuestionView from "@/pages/vinhonarios/QuestionView";
 import QrCodes from "@/pages/vinhonarios/QrCodes";
 import Scoreboard from "@/pages/vinhonarios/Scoreboard";
 import ResultsChart from "@/pages/vinhonarios/ResultsChart";
+
+// NPS Pages
+import NpsDashboard from "@/pages/nps/Dashboard";
+import SurveyList from "@/pages/nps/SurveyList";
+import NPSCalculator from "@/pages/nps/Calculator";
+import SurveyBuilder from "@/pages/nps/SurveyBuilder";
+import CreateSurvey from "@/pages/nps/CreateSurvey";
+import SurveyDetails from "@/pages/nps/SurveyDetails";
+import SurveyResults from "@/pages/nps/SurveyResults";
 
 // Components
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -82,9 +94,20 @@ function Router() {
             <Route path="/conselho-digital/portfolio" component={ConselhoDigitalPortfolio} />
             <Route path="/vinhonarios/vinhos-visoes" component={VinhosVisoes} />
             <Route path="/vinhonarios/admin" component={WineQuizAdminDashboard} />
+            <Route path="/vinhonarios/sommelier" component={SommelierPanel} />
+            <Route path="/vinhonarios/register" component={TeamRegistration} />
+            <Route path="/vinhonarios/question" component={QuestionView} />
             <Route path="/vinhonarios/qr-codes" component={QrCodes} />
             <Route path="/vinhonarios/scoreboard" component={Scoreboard} />
             <Route path="/vinhonarios/results-chart" component={ResultsChart} />
+            <Route path="/nps" component={NpsDashboard} />
+            <Route path="/nps/surveys" component={SurveyList} />
+            <Route path="/nps/calculator" component={NPSCalculator} />
+            <Route path="/nps/create" component={CreateSurvey} />
+            <Route path="/nps/surveys/create" component={CreateSurvey} />
+            <Route path="/nps/surveys/builder" component={SurveyBuilder} />
+            <Route path="/nps/surveys/:surveyId" component={SurveyDetails} />
+            <Route path="/nps/surveys/:surveyId/results" component={SurveyResults} />
             <Route component={NotFound} />
           </Switch>
         </LayoutComponent>

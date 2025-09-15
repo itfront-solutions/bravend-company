@@ -61,6 +61,25 @@ export const useAuthStore = create<AuthState>((set, get) => ({
           }
         });
       } else {
+        // Auto-login para desenvolvimento
+        if (import.meta.env.DEV) {
+          try {
+            const response = await AuthService.login({
+              email: "admin@carvion.com",
+              password: "password123",
+              tenantId: "carvion-tenant-1"
+            });
+            set({
+              user: response.user,
+              isAuthenticated: true,
+              isLoading: false,
+            });
+            return;
+          } catch (error) {
+            console.warn('Auto-login falhou:', error);
+          }
+        }
+        
         set({
           user: null,
           isAuthenticated: false,

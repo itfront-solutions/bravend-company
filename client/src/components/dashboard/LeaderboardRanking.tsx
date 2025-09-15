@@ -10,7 +10,7 @@ export default function LeaderboardRanking() {
   const { data: leaderboard = [], isLoading } = useQuery({
     queryKey: ['/api/tenants', user?.tenantId, 'leaderboard'],
     enabled: !!user?.tenantId,
-  });
+  }) as { data: any[], isLoading: boolean };
 
   if (isLoading) {
     return (
@@ -33,8 +33,8 @@ export default function LeaderboardRanking() {
     );
   }
 
-  const topUsers = leaderboard.slice(0, 4);
-  const currentUserRank = leaderboard.findIndex((u: any) => u.id === user?.id) + 1;
+  const topUsers = Array.isArray(leaderboard) ? leaderboard.slice(0, 4) : [];
+  const currentUserRank = Array.isArray(leaderboard) ? leaderboard.findIndex((u: any) => u.id === user?.id) + 1 : 0;
 
   return (
     <Card data-testid="leaderboard-ranking">

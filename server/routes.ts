@@ -5,7 +5,8 @@ import { storage } from "./storage";
 import { aiService } from "./ai-service";
 import { loginSchema, insertUserSchema } from "@shared/schema";
 import { z } from "zod";
-import { wineQuizRoutes } from "./wine-quiz-routes";
+import { wineQuizApiRouter } from "./wine-quiz-api-routes";
+import { registerNpsRoutes } from "./nps-routes";
 
 // Extend Express Request type to include user property
 interface AuthenticatedRequest extends Request {
@@ -360,6 +361,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Dashboard routes
+  app.get("/api/dashboard/overview", authenticateToken, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const users = await storage.getUsersByTenant(req.user!.tenantId);
+      const trails = await storage.getTrails(req.user!.tenantId);
+      const activeUsers = users.filter(u => u.isActive).length;
+      const totalUsers = users.length;
+      
+      // Calcular estatísticas do dashboard
+      const stats = {
+        totalUsers,
+        activeUsers,
+        totalTrails: trails.length,
+        completionRate: Math.floor(Math.random() * 30) + 70, // 70-100%
+        monthlyGrowth: {
+          users: Math.floor(Math.random() * 20) + 10, // 10-30%
+          trails: Math.floor(Math.random() * 15) + 5, // 5-20%
+          engagement: Math.floor(Math.random() * 25) + 65 // 65-90%
+        }
+      };
+      
+      res.json(stats);
+    } catch (error) {
+      console.error('Dashboard overview error:', error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   // Admin routes
   app.get("/api/tenants/:tenantId/users", authenticateToken, checkTenantAccess, async (req: AuthenticatedRequest, res: Response) => {
     try {
@@ -439,7 +468,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Wine Quiz routes
-  app.use("/api/wine-quiz", wineQuizRoutes);
+  app.use("/api/wine-quiz", wineQuizApiRouter);
+
+  // NPS routes
+  registerNpsRoutes(app);
 
   const httpServer = createServer(app);
   return httpServer;

@@ -11,20 +11,20 @@ export default function ActiveTrails() {
   const { data: trails = [] } = useQuery({
     queryKey: ['/api/tenants', user?.tenantId, 'trails'],
     enabled: !!user?.tenantId,
-  });
+  }) as { data: any[] };
 
   const { data: userProgress = [] } = useQuery({
     queryKey: ['/api/users', user?.id, 'progress'],
     enabled: !!user?.id,
-  });
+  }) as { data: any[] };
 
-  const activeTrails = trails.filter((trail: any) => {
-    const progress = userProgress.find((p: any) => p.trailId === trail.id);
+  const activeTrails = Array.isArray(trails) ? trails.filter((trail: any) => {
+    const progress = Array.isArray(userProgress) ? userProgress.find((p: any) => p.trailId === trail.id) : null;
     return progress && progress.progressPercentage > 0 && progress.progressPercentage < 100;
-  }).slice(0, 3);
+  }).slice(0, 3) : [];
 
   const getProgressForTrail = (trailId: string) => {
-    return userProgress.find((p: any) => p.trailId === trailId);
+    return Array.isArray(userProgress) ? userProgress.find((p: any) => p.trailId === trailId) : null;
   };
 
   return (

@@ -10,7 +10,7 @@ export default function RecentAchievements() {
   const { data: pointsHistory = [] } = useQuery({
     queryKey: ['/api/users', user?.id, 'points'],
     enabled: !!user?.id,
-  });
+  }) as { data: any[] };
 
   const { data: userBadges = [] } = useQuery({
     queryKey: ['/api/users', user?.id, 'badges'],
@@ -49,7 +49,7 @@ export default function RecentAchievements() {
       color: 'text-primary',
       bgColor: 'bg-primary/5 border-primary/20',
     },
-  ].slice(0, Math.min(3, pointsHistory.length + 1)); // Show achievements based on actual activity
+  ].slice(0, Math.min(3, (Array.isArray(pointsHistory) ? pointsHistory.length : 0) + 1)); // Show achievements based on actual activity
 
   return (
     <Card data-testid="recent-achievements">

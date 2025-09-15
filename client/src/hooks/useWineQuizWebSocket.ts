@@ -25,7 +25,8 @@ export const useWineQuizWebSocket = (): WineQuizWebSocketHook => {
     if (ws.current?.readyState === WebSocket.OPEN) return;
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}/ws/wine-quiz?token=${token}`;
+    const host = window.location.host || 'localhost:3000';
+    const wsUrl = `${protocol}//${host}/ws/wine-quiz?token=${token}`;
 
     try {
       ws.current = new WebSocket(wsUrl);

@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 import jwt from 'jsonwebtoken';
-import { wineQuizStorage } from './wine-quiz-storage';
+import { wineQuizStorage } from './wine-quiz-db-storage';
 
 export interface WineQuizClient {
   ws: WebSocket;
@@ -72,9 +72,17 @@ export class WineQuizWebSocketManager {
     }
   }
 
-  private async handleMessage(ws: WebSocket, data: Buffer) {
+  private async handleMessage(ws: WebSocket, data: Buffer | ArrayBuffer | Buffer[]) {
     try {
-      const message = JSON.parse(data.toString());
+      let messageText: string;
+      if (data instanceof ArrayBuffer) {
+        messageText = Buffer.from(data).toString();
+      } else if (Array.isArray(data)) {
+        messageText = Buffer.concat(data).toString();
+      } else {
+        messageText = data.toString();
+      }
+      const message = JSON.parse(messageText);
       const client = this.clients.get(ws);
       
       if (!client) return;

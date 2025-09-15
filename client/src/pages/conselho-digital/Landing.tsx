@@ -15,7 +15,7 @@ export default function ConselhoDigitalLanding() {
             </h1>
           </div>
           <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Escola de Conselheiros CVO
+            Jornada CVO
           </p>
           <p className="text-lg text-gray-500 mt-4 max-w-2xl mx-auto">
             Plataforma completa para desenvolvimento de competências de conselheiros, 
